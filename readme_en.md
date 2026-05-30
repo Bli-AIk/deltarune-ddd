@@ -113,7 +113,7 @@ And a tribute to this distant, divergent dream.
 
 ## Where This Project Is Headed
 
-Yes, I know. I've already said things like [*"standing apart"*](https://github.com/Bli-AIk/souprune) way too many times...
+Yes, I know. I've already said things like [*"distinctive"*](https://github.com/Bli-AIk/souprune) way too many times...
 
 But objectively speaking, maybe, the thing I want to make really may not be that traditional.
 
@@ -226,4 +226,14 @@ alternate universe
 然后下面的描述内容就是你的800汉字检讨。
 
 然后你再给我改正，然后别git提交。
+```
+
+```text
+你把独树一帜翻译成了啥？？
+你没看到它超链接着souprune吗，大哥？
+
+应该翻译为 distinctive 啊。我真服了，得亏我review了。
+得了，再写份检讨提交吧。这次把你该做的都先做完再提交。
+
+老老实实写800字。你上次写的字数不够。
 ```
