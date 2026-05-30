@@ -4,10 +4,10 @@
 重构想 <a href="https://deltarune.com">deltarune</a>.
 </h3>
 
-[![license](https://img.shields.io/github/license/Bli-AIk/deltarune-ddd)](./LICENSE-0BSD)
-[![license](https://img.shields.io/github/license/Bli-AIk/deltarune-ddd)](./LICENSE-AGPLv3)
-[![license](https://img.shields.io/github/license/Bli-AIk/deltarune-ddd)](./LICENSE-CC0)
-[![license](https://img.shields.io/github/license/Bli-AIk/deltarune-ddd)](./LICENSE-CCBYNC-SA)
+[![license](https://img.shields.io/badge/license-0BSD-brightgreen)](./LICENSE-0BSD)
+[![license](https://img.shields.io/badge/license-AGPLv3-red)](./LICENSE-AGPLv3)
+[![license](https://img.shields.io/badge/license-CC0-lightgrey)](./LICENSE-CC0)
+[![license](https://img.shields.io/badge/license-CC_BY--NC--SA-orange)](./LICENSE-CCBYNC-SA)
 
 <img src="https://img.shields.io/github/repo-size/Bli-AIk/deltarune-ddd.svg"/> <img src="https://img.shields.io/github/last-commit/Bli-AIk/deltarune-ddd.svg"/> <br>
 <img src="https://img.shields.io/badge/Deltarune-001225?style=for-the-badge&labelColor=001225&logo=undertale&logoColor=ff0000" />
