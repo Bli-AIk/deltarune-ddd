@@ -1,7 +1,7 @@
 <h1 align="center">deltarune distant, divergent dream</h1>
 
 <h3 align="center">
-deltarune distant, divergent dream - A Reimagining of <a href="https://deltarune.com">deltarune</a>.
+A Reimagining of <a href="https://deltarune.com">deltarune</a>.
 </h3>
 
 <div align="center">
@@ -216,4 +216,14 @@ alternate universe
 
 不是 remagining deltarune。而是deltarune distant, divergent dream - A Reimagining of deltarune. ——这是我写到github的简介。
 呃这语法应该没问题吧
+```
+
+```text
+不是 我不是说这么改，你铸币吗我靠
+我不是有h1标题了吗你你在h3里面重复一遍标题？？？
+
+慢着慢着啊，这个错你得记录下来。你自己做一次git提交，啊，看我历史提交风格，然后写一个你的提交，诚恳的写一个检讨书，800汉字，标题以那个……语义化提交头+中文作文标题来写，然后括号写上（这个提交是LLM写的）
+然后下面的描述内容就是你的800汉字检讨。
+
+然后你再给我改正，然后别git提交。
 ```
