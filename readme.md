@@ -4,19 +4,25 @@
 重构想 <a href="https://deltarune.com">deltarune</a>.
 </h3>
 
+<div align="center">
+
 [![license](https://img.shields.io/badge/license-0BSD-brightgreen)](./LICENSE-0BSD)
 [![license](https://img.shields.io/badge/license-AGPLv3-red)](./LICENSE-AGPLv3)
 [![license](https://img.shields.io/badge/license-CC0-lightgrey)](./LICENSE-CC0)
 [![license](https://img.shields.io/badge/license-CC_BY--NC--SA-orange)](./LICENSE-CCBYNC-SA)
 
-<img src="https://img.shields.io/github/repo-size/Bli-AIk/deltarune-ddd.svg"/> <img src="https://img.shields.io/github/last-commit/Bli-AIk/deltarune-ddd.svg"/> <br>
+<img src="https://img.shields.io/github/repo-size/Bli-AIk/deltarune-ddd.svg"/> <img src="https://img.shields.io/github/last-commit/Bli-AIk/deltarune-ddd.svg"/>
+
 <img src="https://img.shields.io/badge/Deltarune-001225?style=for-the-badge&labelColor=001225&logo=undertale&logoColor=ff0000" />
 <img src="https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white" />
 
+<br><br>
 
-| 英语                      | 简体中文 |
-| ------------------------- | -------- |
+| 英语 | 简体中文 |
+| :---: | :---: |
 | [English](./readme_en.md) | 简体中文 |
+
+</div>
 
 ## 重构想
 
