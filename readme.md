@@ -4,7 +4,12 @@
 重构想 <a href="https://deltarune.com">deltarune</a>.
 </h3>
 
-[![license](https://img.shields.io/github/license/Bli-AIk/deltarune-ddd)](LICENSE.md) <img src="https://img.shields.io/github/repo-size/Bli-AIk/deltarune-ddd.svg"/> <img src="https://img.shields.io/github/last-commit/Bli-AIk/deltarune-ddd.svg"/> <br>
+[![license](https://img.shields.io/github/license/Bli-AIk/deltarune-ddd)](./LICENSE-0BSD)
+[![license](https://img.shields.io/github/license/Bli-AIk/deltarune-ddd)](./LICENSE-AGPLv3)
+[![license](https://img.shields.io/github/license/Bli-AIk/deltarune-ddd)](./LICENSE-CC0)
+[![license](https://img.shields.io/github/license/Bli-AIk/deltarune-ddd)](./LICENSE-CCBYNC-SA)
+
+<img src="https://img.shields.io/github/repo-size/Bli-AIk/deltarune-ddd.svg"/> <img src="https://img.shields.io/github/last-commit/Bli-AIk/deltarune-ddd.svg"/> <br>
 <img src="https://img.shields.io/badge/Deltarune-001225?style=for-the-badge&labelColor=001225&logo=undertale&logoColor=ff0000" />
 <img src="https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white" />
 
