@@ -14,6 +14,7 @@ A Reimagining of <a href="https://deltarune.com">deltarune</a>.
 <img src="https://img.shields.io/github/repo-size/Bli-AIk/deltarune-ddd.svg"/> <img src="https://img.shields.io/github/last-commit/Bli-AIk/deltarune-ddd.svg"/>
 
 <img src="https://img.shields.io/badge/Deltarune-001225?style=for-the-badge&labelColor=001225&logo=undertale&logoColor=ff0000" />
+<img src="https://img.shields.io/badge/Touhou-Project-1E2569?style=for-the-badge&labelColor=C41A5B&logo=taichilang&logoColor=white" />
 <img src="https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white" />
 
 <br><br>
