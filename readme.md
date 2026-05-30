@@ -5,24 +5,29 @@
 </h3>
 
 <div align="center">
-
+<img src="https://img.shields.io/github/repo-size/Bli-AIk/deltarune-ddd.svg"/>
 <img src="https://img.shields.io/badge/license-0BSD-brightgreen"/>
 <img src="https://img.shields.io/badge/license-AGPLv3-red"/>
 <img src="https://img.shields.io/badge/license-CC0-lightgrey"/>
 <img src="https://img.shields.io/badge/license-CC_BY--NC--SA-orange"/>
+<img src="https://img.shields.io/github/last-commit/Bli-AIk/deltarune-ddd.svg"/>
+<br>
 
-<img src="https://img.shields.io/github/repo-size/Bli-AIk/deltarune-ddd.svg"/> <img src="https://img.shields.io/github/last-commit/Bli-AIk/deltarune-ddd.svg"/>
-
-<img src="https://img.shields.io/badge/Deltarune-001225?style=for-the-badge&labelColor=001225&logo=undertale&logoColor=ff0000" />
-<img src="https://img.shields.io/badge/Touhou-Project-1E2569?style=for-the-badge&labelColor=C41A5B&logo=taichilang&logoColor=white" />
-<img src="https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white" />
-
-<br><br>
+---
 
 | 英语 | 简体中文 |
 | :---: | :---: |
 | [English](./readme_en.md) | 简体中文 |
 
+<br>
+<img src="https://img.shields.io/badge/^     \-/     ^-000000?style=for-the-badge&labelColor=FFFFFF" />
+<br>
+<img src="https://img.shields.io/badge/Touhou-Project-1E2569?style=for-the-badge&labelColor=C41A5B&logo=taichilang&logoColor=white" />
+<br>
+<img src="https://img.shields.io/badge/Deltarune-001225?style=for-the-badge&labelColor=001225&logo=undertale&logoColor=ff0000" />
+<br>
+<img src="https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white" />
+<br>
 </div>
 
 ## 重构想
