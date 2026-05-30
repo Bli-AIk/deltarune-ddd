@@ -1,7 +1,7 @@
 <h1 align="center">deltarune distant, divergent dream</h1>
 
 <h3 align="center">
-Reimagining <a href="https://deltarune.com">deltarune</a>.
+deltarune distant, divergent dream - A Reimagining of <a href="https://deltarune.com">deltarune</a>.
 </h3>
 
 <div align="center">
@@ -51,7 +51,7 @@ So yeah. That's where this whole reimagining starts.
 
 ## What Reimagining Means, And Why
 
-People have all sorts of words for adaptation. Some call it *derivative work*. Some call it a *fan work*. Some hold it up as a *fan game*. Some just say *parallel universe* and call it a day. The angle is different every time.
+People have all sorts of words for adaptation. Some call it *derivative work*. Some call it a *fan work*. Some hold it up as a *fan game*. Some just say *alternate universe* and call it a day. The angle is different every time.
 
 So I pulled out a word that still feels fairly new to me: **reimagining**.
 
@@ -195,4 +195,25 @@ Thanks.
 
 ```text
 在文章最后写上这次对话我的所有prompt
+```
+
+```text
+哦对了 parallel universe ，这里你改一下。我说的“平行宇宙”其实就是……呃，au嘛。要不你就都留着，要么你就都写上。随你来，反正……你懂我意思吧。
+
+这句也加到文章最后啊。
+```
+
+```text
+别太直球，你就用全拼
+```
+
+```text
+alternate universe
+```
+
+```text
+标题那块你稍微改改
+
+不是 remagining deltarune。而是deltarune distant, divergent dream - A Reimagining of deltarune. ——这是我写到github的简介。
+呃这语法应该没问题吧
 ```
