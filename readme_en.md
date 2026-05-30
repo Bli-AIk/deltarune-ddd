@@ -6,10 +6,10 @@ A Reimagining of <a href="https://deltarune.com">deltarune</a>.
 
 <div align="center">
 
-[![license](https://img.shields.io/badge/license-0BSD-brightgreen)](./LICENSE-0BSD)
-[![license](https://img.shields.io/badge/license-AGPLv3-red)](./LICENSE-AGPLv3)
-[![license](https://img.shields.io/badge/license-CC0-lightgrey)](./LICENSE-CC0)
-[![license](https://img.shields.io/badge/license-CC_BY--NC--SA-orange)](./LICENSE-CCBYNC-SA)
+<img src="https://img.shields.io/badge/license-0BSD-brightgreen"/>
+<img src="https://img.shields.io/badge/license-AGPLv3-red"/>
+<img src="https://img.shields.io/badge/license-CC0-lightgrey"/>
+<img src="https://img.shields.io/badge/license-CC_BY--NC--SA-orange"/>
 
 <img src="https://img.shields.io/github/repo-size/Bli-AIk/deltarune-ddd.svg"/> <img src="https://img.shields.io/github/last-commit/Bli-AIk/deltarune-ddd.svg"/>
 
