@@ -26,7 +26,7 @@
 <br>
 <img src="https://img.shields.io/badge/Deltarune-001225?style=for-the-badge&labelColor=001225&logo=undertale&logoColor=ff0000" />
 <br>
-<img src="https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white" />
+<img src="https://img.shields.io/badge/Kristal-6A5ACD?style=for-the-badge" />
 <br>
 </div>
 
@@ -143,13 +143,13 @@ deltarune 原作，某些程度上是极简主义的。至少我印象里还记�
 
 ## ……以及技术栈选择
 
-> 我不想半路跑回C#又不想一头扎入lua还要避免过度工程化因此我只能选择macroquad.
+> 我本来想用 macroquad 一点点造，结果发现轮子实在太大，最后还是接受现实，回到 Kristal 这边。
 
 就是这样。
 
-总而言之，我已经深入 `rust` 而无法回头。既然如此，我就尽可能从最简单的地方开始，大大方方走向极简主义。
+总而言之，我确实试过 `rust` 和 macroquad 那条路，也确实留下了一些实验。但要真把这个项目推进下去，继续从底层开始摞轮子，大概只会把自己先摞没。
 
-……一点点摞起来一切。
+所以，现在先把后端切到 `Kristal`。少造点轮子，多做点内容。
 
 ## 哦对了，许可证
 

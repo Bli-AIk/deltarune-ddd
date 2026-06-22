@@ -26,7 +26,7 @@ A Reimagining of <a href="https://deltarune.com">deltarune</a>.
 <br>
 <img src="https://img.shields.io/badge/Deltarune-001225?style=for-the-badge&labelColor=001225&logo=undertale&logoColor=ff0000" />
 <br>
-<img src="https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white" />
+<img src="https://img.shields.io/badge/Kristal-6A5ACD?style=for-the-badge" />
 <br>
 </div>
 
@@ -147,13 +147,13 @@ But the atmosphere of Hifuu's tracks, plus some of my own ideas, make me want to
 
 ## And The Tech Stack
 
-> I don't want to run halfway back to C#, I don't want to dive headfirst into Lua, and I also want to avoid overengineering, so I can only choose macroquad.
+> I originally wanted to build it bit by bit with macroquad, then realized the wheel was way too big, and finally accepted reality: this should move to Kristal.
 
 That's it.
 
-In short, I've already gone too deep into `rust` to turn back. Since that's the case, I may as well start from the simplest place possible and just lean into minimalism.
+In short, I did try the `rust` and macroquad route, and those experiments still matter. But if I keep building every wheel from the ground up, the project is probably going to bury me before I make the actual thing.
 
-...Then stack everything up, bit by bit.
+So the backend is moving to `Kristal` now. Fewer wheels. More actual content.
 
 ## Oh Right, The License
 
