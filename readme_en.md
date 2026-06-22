@@ -30,6 +30,20 @@ A Reimagining of <a href="https://deltarune.com">deltarune</a>.
 <br>
 </div>
 
+<details>
+<summary>Fast version, honestly...</summary>
+
+Deltarune DDD (Distant, Divergent Dream) is a Deltarune fan game project that takes Deltarune as its core, borrows the structure and musical atmosphere of albums related to Touhou's Hifuu Club, and re-directs its chapter presentation through a visual-audio language similar to MADs, AMVs, BGAs, audio MADs, and PVs.
+
+It was inspired by Undertale DDD, but it is not exactly the same as that work... the differences are pretty large. Maybe the same is true compared with other works, too.
+
+I do not think it is a fan game that heavily rewrites the setting or rebuilds the world in the traditional sense, and I do not think alternate universe (AU) is quite the right label either. Though I have no problem with what other people want to call it.
+It may be closer to a music-driven, reimagined Deltarune: the original story remains the core, but the chapter structure, scene pacing, cutscenes, and battle presentation will be reorganized as much as possible through the structure, tracks, and atmosphere of Hifuu Club albums.
+
+Simply put: recut, re-storyboard, and re-direct Deltarune. More or less.
+
+</details>
+
 > Heads-up: this English README was translated by AI, because the author is, in their own words, "an illiterate who doesn't understand English." So yeah, if some line sounds a little weird, that's probably why.
 
 ## Reimagining
