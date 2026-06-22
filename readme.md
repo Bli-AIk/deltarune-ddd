@@ -30,6 +30,10 @@
 <br>
 </div>
 
+## 速通废话，实事求是
+
+Deltarune DDD（Distant, Divergent Dream）是一个以 Deltarune 为主体、借东方秘封俱乐部的专辑结构与音乐氛围重新导演章节演出的同人项目。
+
 ## 重构想
 
 > 我听说过这样一个作品。
