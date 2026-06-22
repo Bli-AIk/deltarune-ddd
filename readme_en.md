@@ -169,6 +169,19 @@ In short, I did try the `rust` and macroquad route, and those experiments still 
 
 So the backend is moving to `Kristal` now. Fewer wheels. More actual content.
 
+<details>
+<summary>Old tech-stack note</summary>
+
+> I don't want to run halfway back to C#, I don't want to dive headfirst into Lua, and I also want to avoid overengineering, so I can only choose macroquad.
+
+That's it.
+
+In short, I've already gone too deep into `rust` to turn back. Since that's the case, I may as well start from the simplest place possible and just lean into minimalism.
+
+...Then stack everything up, bit by bit.
+
+</details>
+
 ## Oh Right, The License
 
 This project is fully open source. All code and related assets are open source as well, though proprietary materials that clearly may involve copyright issues, such as original Hifuu tracks, probably will not be included. For assets involving other works, the copyright and license of the original work or author apply. If something infringes, it will be removed.
