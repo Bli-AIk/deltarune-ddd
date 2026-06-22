@@ -1,0 +1,58 @@
+# Project-local LuaLS settings for this Kristal mod.
+# The mod remains its own workspace; Kristal is provided as external library docs.
+
+[language-server.lua-language-server]
+command = "lua-language-server"
+
+[language-server.lua-language-server.config.Lua.runtime]
+version = "LuaJIT"
+
+[language-server.lua-language-server.config.Lua.runtime.builtin]
+utf8 = "enable"
+
+[language-server.lua-language-server.config.Lua.runtime.special]
+"love.filesystem.load" = "loadfile"
+modRequire = "require"
+libRequire = "require"
+
+[language-server.lua-language-server.config.Lua.workspace]
+library = [
+  "${3rd}/love2d/library",
+  "/home/aik/Projects/LuaProjects/kristal-lua-docs/library",
+  ".helix/kristal-mod-globals.lua",
+  "/home/aik/Projects/LuaProjects/Kristal/main.lua",
+  "/home/aik/Projects/LuaProjects/Kristal/src",
+]
+checkThirdParty = "Disable"
+
+[language-server.lua-language-server.config.Lua.completion]
+autoRequire = false
+
+[language-server.lua-language-server.config.Lua.diagnostics]
+workspaceEvent = "OnChange"
+globals = ["love"]
+disable = [
+  "deprecated",
+  "duplicate-set-field",
+  "redundant-parameter",
+  "undefined-doc-name",
+  "return-type-mismatch",
+  "lowercase-global",
+  "need-check-nil",
+  "cast-local-type",
+  "inject-field",
+  "undefined-field",
+]
+
+[language-server.lua-language-server.config.Lua.type]
+weakNilCheck = true
+weakUnionCheck = true
+
+[language-server.lua-language-server.config.Lua.format.defaultConfig]
+indent_style = "space"
+indent_size = "4"
+
+[[language]]
+name = "lua"
+language-servers = ["lua-language-server"]
+indent = { tab-width = 4, unit = "    " }
