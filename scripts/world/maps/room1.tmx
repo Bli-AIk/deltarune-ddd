@@ -5,6 +5,7 @@
  </editorsettings>
  <properties>
   <property name="name" value="Test Map - Room 1"/>
+  <property name="name_id" value="map_room1_name"/>
  </properties>
  <tileset firstgid="1" source="../tilesets/castle.tsx"/>
  <layer id="1" name="tiles" width="20" height="24">
@@ -90,6 +91,8 @@
   <object id="19" name="npc" x="480" y="840" width="40" height="40">
    <properties>
     <property name="actor" value="starwalker"/>
+    <property name="id1" value="world_room1_starwalker_1"/>
+    <property name="id2" value="world_room1_starwalker_2"/>
     <property name="text1">* These [color:yellow]stairs[color:reset] are [color:yellow]Pissing[color:reset] me
 off...</property>
     <property name="text2" value="* I'm the original   [color:yellow]Starwalker[color:reset]"/>
@@ -97,6 +100,8 @@ off...</property>
   </object>
   <object id="27" name="savepoint" x="80" y="210" width="40" height="40">
    <properties>
+    <property name="id1" value="world_room1_savepoint_1"/>
+    <property name="id2" value="world_room1_savepoint_2"/>
     <property name="text1">* Silence echoes in the darkness
 of this familiar-yet-different
 scenery.</property>
@@ -122,6 +127,7 @@ you.</property>
    <properties>
     <property name="actor" value="wall"/>
     <property name="flagcheck" value="wall_hit"/>
+    <property name="id1" value="world_room1_wall_guardian_1"/>
     <property name="text1">* I Am the Wall Guardian.[wait:5]
 * This Wall is Off Limits for you
 no-good wall slammers.</property>

@@ -1,0 +1,38 @@
+{
+    "chara": {
+        "kris": {
+            "translated": "克里斯",
+            "original": "Kris"
+        },
+        "susie": {
+            "translated": "苏西",
+            "original": "Susie"
+        },
+        "ralsei": {
+            "translated": "利艾尔斯",
+            "original": "Ralsei"
+        },
+        "raisel": {
+            "translated": "利艾尔斯",
+            "original": "Ralsei"
+        },
+        "noelle": {
+            "translated": "诺艾尔",
+            "original": "Noelle"
+        }
+    },
+    "actor": {
+        "dummy": {
+            "translated": "人偶",
+            "original": "Dummy"
+        },
+        "starwalker": {
+            "translated": "星之行者",
+            "original": "Starwalker"
+        },
+        "wall": {
+            "translated": "墙",
+            "original": "Wall"
+        }
+    }
+}

@@ -9,12 +9,12 @@
     // The version of your project.
     "version": "v1.0.0",
     // What version of the engine your project was made with.
-    "engineVer": "v0.10.0-dev",
+    "engineVer": "v0.10.0",
 
     // The Deltarune chapter you'd like to base your project off of.
     // Do keep in mind that you can control chapter-specific features
     // one by one using the config below.
-    "chapter": 1,
+    "chapter": 4,
 
     // The map that you start in when first starting the project.
     "map": "room1",
@@ -62,6 +62,14 @@
     "config": {
         "kristal": {
             // End of config
+        },
+        "langLibZh": {
+            "defaultLanguage": "auto",
+            "languages": ["en", "zh_hans"],
+            "languageNames": {
+                "en": "English",
+                "zh_hans": "简体中文"
+            }
         }
     },
 

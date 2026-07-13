@@ -4,7 +4,7 @@ function Dummy:init()
     super.init(self)
 
     -- Text displayed at the bottom of the screen at the start of the encounter
-    self.text = "* The tutorial begins...?"
+    self.text = Game:loc("* The tutorial begins...?", "encounter_dummy_start")
 
     -- Battle music ("battle" is rude buster)
     self.music = "battle"

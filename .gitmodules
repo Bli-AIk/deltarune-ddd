@@ -1,3 +1,12 @@
 [submodule "docs"]
 	path = docs
 	url = git@github.com:Bli-AIk/deltarune-ddd-docs.git
+[submodule ".helix"]
+	path = .helix
+	url = git@github.com:Bli-AIk/kristal-helix-config.git
+[submodule "libraries/langLib_zh_hans"]
+	path = libraries/langLib_zh_hans
+	url = https://github.com/Bli-AIk/kristal-langlib-zh-hans.git
+[submodule ".emacs"]
+	path = .emacs
+	url = https://github.com/Bli-AIk/kristal-emacs-config.git

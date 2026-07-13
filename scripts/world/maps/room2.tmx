@@ -5,6 +5,7 @@
  </editorsettings>
  <properties>
   <property name="name" value="Test Map - Room 2"/>
+  <property name="name_id" value="map_room2_name"/>
  </properties>
  <tileset firstgid="1" source="../tilesets/castle.tsx"/>
  <layer id="1" name="tiles" width="20" height="12">

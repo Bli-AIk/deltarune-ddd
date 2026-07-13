@@ -1,8 +1,0 @@
-[keys.normal.space]
-f = ":format"
-o = "file_picker"
-O = "file_picker_in_current_directory"
-# Run this mod through the local Kristal engine in a detached terminal.
-l = ':sh root="$(git rev-parse --show-toplevel)" && "$root/.helix/run-kristal-terminal.sh" >/dev/null 2>&1'
-# Same as Space-l, but keep the terminal open after Love exits.
-L = ':sh root="$(git rev-parse --show-toplevel)" && "$root/.helix/run-kristal-terminal.sh" --hold >/dev/null 2>&1'
