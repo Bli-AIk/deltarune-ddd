@@ -70,6 +70,21 @@
                 "en": "English",
                 "zh_hans": "简体中文"
             }
+        },
+        "object-editor": {
+            "enabled": true,
+            "snap_grid": 1,
+            "snap_angle": 5,
+            "snap_scale": 0.1,
+            "fine_factor": 0.1,
+            "wheel_scale_step": 0.1,
+            "wheel_rotate_step": 5,
+            "max_undo": 64
+        },
+        "terminal-cli": {
+            "enabled": true,
+            "only_dev": true,
+            "max_commands_per_frame": 8
         }
     },
 

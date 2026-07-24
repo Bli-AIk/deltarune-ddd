@@ -169,6 +169,10 @@ In short, I did try the `rust` and macroquad route, and those experiments still 
 
 So the backend is moving to `Kristal` now. Fewer wheels. More actual content.
 
+The development setup uses submodules for Simplified Chinese localization,
+object-editor scene editing, and the terminal-cli interactive debug console.
+The latter two are development-only and are not part of release content.
+
 <details>
 <summary>Old tech-stack note</summary>
 

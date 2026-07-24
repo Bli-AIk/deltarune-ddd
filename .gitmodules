@@ -11,3 +11,9 @@
 	path = .emacs
 	url = https://github.com/Bli-AIk/kristal-emacs-config.git
 	branch = stable/lua
+[submodule "libraries/terminal-cli"]
+	path = libraries/terminal-cli
+	url = https://github.com/Bli-AIk/kristal-terminal-cli.git
+[submodule "libraries/object-editor"]
+	path = libraries/object-editor
+	url = https://github.com/Bli-AIk/object-editor.git
