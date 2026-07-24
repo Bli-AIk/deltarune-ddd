@@ -10,3 +10,4 @@
 [submodule ".emacs"]
 	path = .emacs
 	url = https://github.com/Bli-AIk/kristal-emacs-config.git
+	branch = stable/lua
