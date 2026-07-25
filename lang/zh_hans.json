@@ -110,9 +110,9 @@
     "item_cell_phone_name": "手机",
     "item_cell_phone_useName": "手机",
     "item_cell_phone_description": "可以用来打电话。",
-    "item_cell_phone_call_try": "* （你试着用手机\n打电话。）",
+    "item_cell_phone_call_try": "* （你试着拨打电话。）",
     "item_cell_phone_call_not_working": "* 但似乎打不通。",
-    "item_cell_phone_call_garbage_noise": "* 里面只有垃圾噪音。",
+    "item_cell_phone_call_garbage_noise": "* 除了乱哄哄的噪音，什么都没有。",
 
     "item_shadowcrystal_name": "暗影水晶",
     "item_shadowcrystal_useName": "暗影水晶",
