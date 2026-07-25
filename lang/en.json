@@ -1,6 +1,7 @@
 {
     "mod.loaded": "Loaded [var:name]!",
     "mod.language_switched": "* Language switched to [var:language].",
+    "frozen_enemy_text": "* (It's frozen solid...)",
 
     "map_room1_name": "Test Map - Room 1",
     "map_room2_name": "Test Map - Room 2",

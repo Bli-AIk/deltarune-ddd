@@ -117,10 +117,21 @@ local function hookNoelleTitle()
     end)
 end
 
+local function hookFrozenEnemyText()
+    HookSystem.hook(Interactable, "onInteract", function(orig, self, ...)
+        if type(self.text) == "table" and self.text[1] == "* (It's frozen solid...)" then
+            self.text_id = self.text_id or {}
+            self.text_id[1] = "frozen_enemy_text"
+        end
+        return orig(self, ...)
+    end)
+end
+
 function Mod:init()
     hookItemBonusNames()
     hookVictoryText()
     hookNoelleTitle()
+    hookFrozenEnemyText()
 
     for _, id in ipairs({"kris", "susie", "ralsei", "noelle"}) do
         hookPowerStatLabels(Registry.getPartyMember(id))
