@@ -2,7 +2,46 @@ local function mapNameKey(id)
     return "map_" .. tostring(id):gsub("[^%w_]", "_") .. "_name"
 end
 
+local POWER_STAT_LABELS = {
+    ["Guts:"] = "guts_stat",
+    ["Rudeness"] = "rudeness_stat",
+    ["Fluffiness"] = "fluffiness_stat",
+}
+
+local function hookPowerStatLabels(party_member)
+    if not party_member then return end
+
+    HookSystem.hook(party_member, "drawPowerStat", function(orig, self, index, x, y, menu)
+        if Game:getLanguage() ~= "zh_hans" then
+            return orig(self, index, x, y, menu)
+        end
+
+        local original_print = love.graphics.print
+        love.graphics.print = function(text, ...)
+            local key = POWER_STAT_LABELS[text]
+            if key then
+                text = Game:loc(text, key)
+            end
+            return original_print(text, ...)
+        end
+
+        local ok, result = xpcall(function()
+            return orig(self, index, x, y, menu)
+        end, debug.traceback)
+        love.graphics.print = original_print
+
+        if not ok then
+            error(result)
+        end
+        return result
+    end)
+end
+
 function Mod:init()
+    for _, id in ipairs({"kris", "susie", "ralsei", "noelle"}) do
+        hookPowerStatLabels(Registry.getPartyMember(id))
+    end
+
     Game:registerEvent("squeak", function(data)
         return Squeak(data.x, data.y, {data.width, data.height, data.polygon})
     end)

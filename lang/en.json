@@ -12,6 +12,12 @@
     "chara_ralsei_title_chapter_4": "Dark Hero\nRecords and faces\nthe fate.",
     "chara_ralsei_xactName": "R-Action",
 
+    "spell__act_name": "ACT",
+    "spell__act_description_chapter_4": "Execute various behaviors.\nIt can't be considered magic.",
+    "guts_stat": "Guts:",
+    "rudeness_stat": "Rudeness",
+    "fluffiness_stat": "Fluffiness",
+
     "spell_rude_buster_name": "Rude Buster",
     "spell_rude_buster_castName": "RUDE BUSTER",
     "spell_rude_buster_effect": "Rude\ndamage",
