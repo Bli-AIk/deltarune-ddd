@@ -6,6 +6,17 @@ local POWER_STAT_LABELS = {
     ["Guts:"] = "guts_stat",
     ["Rudeness"] = "rudeness_stat",
     ["Fluffiness"] = "fluffiness_stat",
+    ["Coldness"] = "coldness_stat",
+    ["Boldness"] = "boldness_stat",
+}
+
+local ITEM_BONUS_NAMES = {
+    ["GrazeTime"] = "graze_time_bonus",
+}
+
+local NOELLE_SPECIAL_TITLE_KEYS = {
+    ["Ice Trancer"] = "chara_noelle_title_ice_trancer",
+    ["Frostmancer"] = "chara_noelle_title_frostmancer",
 }
 
 local function hookPowerStatLabels(party_member)
@@ -37,7 +48,80 @@ local function hookPowerStatLabels(party_member)
     end)
 end
 
+local function hookItemBonusNames()
+    HookSystem.hook(Item, "getBonusName", function(orig, item, ...)
+        local bonus_name = orig(item, ...)
+        if Game:getLanguage() ~= "zh_hans" then
+            return bonus_name
+        end
+
+        local key = ITEM_BONUS_NAMES[bonus_name]
+        return key and Game:loc(bonus_name, key) or bonus_name
+    end)
+end
+
+local function localizeVictoryText(text)
+    if Game:getLanguage() ~= "zh_hans" or type(text) ~= "string" then
+        return text
+    end
+
+    local xp, money, currency = text:match("^%* You won!\n%* Got (.-) EXP and (.-) (.-)%.$")
+    if xp then
+        return Game:loc("* You won!\n* Got [var:xp] EXP and [var:money] [var:currency].", "battle_victory_with_exp", {
+            xp = xp,
+            money = money,
+            currency = currency,
+        })
+    end
+
+    local stronger_money, stronger_currency, stronger = text:match("^%* You won!\n%* Got (.-) (.-)%.\n%* (.-) became stronger%.$")
+    if stronger_money then
+        if stronger == "You" then
+            stronger = "你"
+        end
+        return Game:loc("* You won!\n* Got [var:money] [var:currency].\n* [var:stronger] became stronger.", "battle_victory_stronger", {
+            money = stronger_money,
+            currency = stronger_currency,
+            stronger = stronger,
+        })
+    end
+
+    return text
+end
+
+local function hookVictoryText()
+    HookSystem.hook(Battle, "battleText", function(orig, battle, text, ...)
+        return orig(battle, localizeVictoryText(text), ...)
+    end)
+end
+
+local function hookNoelleTitle()
+    local noelle = Registry.getPartyMember("noelle")
+    if not noelle then return end
+
+    HookSystem.hook(noelle, "getTitle", function(orig, self, ...)
+        local title = orig(self, ...)
+        if Game:getLanguage() ~= "zh_hans" then
+            return title
+        end
+
+        for english_title, key in pairs(NOELLE_SPECIAL_TITLE_KEYS) do
+            if title:find(english_title, 1, true) then
+                return Game:loc("LV[var:lv] [var:title]", "chara_getTitle", {
+                    lv = self:getLevel(),
+                    title = Game:loc(title:gsub("^LV%d+ ", ""), key),
+                })
+            end
+        end
+        return title
+    end)
+end
+
 function Mod:init()
+    hookItemBonusNames()
+    hookVictoryText()
+    hookNoelleTitle()
+
     for _, id in ipairs({"kris", "susie", "ralsei", "noelle"}) do
         hookPowerStatLabels(Registry.getPartyMember(id))
     end
