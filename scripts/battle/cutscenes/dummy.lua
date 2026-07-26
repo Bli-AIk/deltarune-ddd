@@ -5,7 +5,7 @@ return {
     ---@param cutscene BattleCutscene
     susie_punch = function(cutscene, battler, enemy)
         -- Open textbox and wait for completion
-        cutscene:text("* Susie threw a punch at\nthe dummy.", nil, nil, {
+        cutscene:text("* [name:susie] threw a punch at\nthe [name:dummy].", nil, nil, {
             id = "battle_dummy_susie_punch_1"
         })
 
@@ -22,7 +22,7 @@ return {
 
         if cutscene:getCharacter("ralsei") then
             -- Ralsei text, if he's in the party
-            cutscene:text("* Aww,[wait:5] Susie!", "blush_pleased", "ralsei", {
+            cutscene:text("* Aww,[wait:5] [name:susie]!", "blush_pleased", "ralsei", {
                 id = "battle_dummy_susie_punch_3"
             })
         end

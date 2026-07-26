@@ -6,21 +6,21 @@
 
     "encounter_dummy_start": "* 教学开始了...？",
     "enemy_dummy_check": "攻击 4 防御 0\n* 棉花心和纽扣眼。\n* 看起来就像个毛茸茸的小家伙。",
-    "enemy_dummy_turn_1": "* 训练人偶露出了柔和的\n微笑。",
+    "enemy_dummy_turn_1": "* [name:dummy]露出了柔和的\n微笑。",
     "enemy_dummy_turn_2": "* 毛茸茸男孩的力量\n弥漫在空气中。",
     "enemy_dummy_turn_3": "* 闻起来像纸板。",
-    "enemy_dummy_low_health": "* 训练人偶看起来快要\n倒下了。",
+    "enemy_dummy_low_health": "* [name:dummy]看起来快要\n倒下了。",
 
     "act_check": "查看",
     "act_dummy_smile": "微笑",
     "act_dummy_tell_story": "讲故事",
-    "act_dummy_smile_1": "* 你微笑了。[wait:5]\n* 训练人偶也对你笑了。",
-    "act_dummy_smile_2": "* 看来训练人偶只是想看到\n你开心。",
-    "act_dummy_tell_story_text": "* 你和[name:ralsei]给训练人偶讲了\n一个睡前故事。\n* 敌人变得[color:blue]疲倦[color:reset]了...",
-    "act_dummy_ralsei_standard": "* [name:ralsei]礼貌地鞠了一躬。\n* 训练人偶在精神上也\n回了一礼。",
-    "act_dummy_other_standard": "* [var:name]扶正了\n训练人偶的帽子。",
+    "act_dummy_smile_1": "* 你微笑了。[wait:5]\n* [name:dummy]也对你笑了。",
+    "act_dummy_smile_2": "* 看来[name:dummy]只是想看到\n你开心。",
+    "act_dummy_tell_story_text": "* 你和[name:ralsei]给[name:dummy]讲了\n一个睡前故事。\n* 敌人变得[color:blue]疲倦[color:reset]了...",
+    "act_dummy_ralsei_standard": "* [name:ralsei]礼貌地鞠了一躬。\n* [name:dummy]在精神上也\n回了一礼。",
+    "act_dummy_other_standard": "* [var:name]扶正了\n[name:dummy]的帽子。",
 
-    "battle_dummy_susie_punch_1": "* [name:susie]朝训练人偶\n挥了一拳。",
+    "battle_dummy_susie_punch_1": "* [name:susie]朝[name:dummy]\n挥了一拳。",
     "battle_dummy_susie_punch_2": "* 你，[wait:5]呃，[wait:5]看起来像个怂包。[wait:5]\n* 我不喜欢揍\n这种人。",
     "battle_dummy_susie_punch_3": "* 哎呀，[wait:5][name:susie]！",
 
@@ -31,7 +31,7 @@
     "world_room1_starwalker_2": "* 我是正牌的   [color:yellow][name:starwalker][color:reset]",
     "world_room1_savepoint_1": "* 寂静在这片熟悉却又陌生的\n黑暗景色中\n回响。",
     "world_room1_savepoint_2": "* 避免复制官方音乐的力量\n在你心中闪耀。",
-    "world_room1_wall_guardian_1": "* 吾乃墙壁守卫。[wait:5]\n* 此墙禁止你们这些\n没规矩的撞墙者靠近。",
+    "world_room1_wall_guardian_1": "* 吾乃[name:wall]守卫。[wait:5]\n* 此[name:wall]禁止你们这些\n没规矩的撞墙者靠近。",
 
     "item_ultimate_candy_name": "终极糖果",
     "item_ultimate_candy_useName": "终极糖果",

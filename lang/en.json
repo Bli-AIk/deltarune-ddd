@@ -6,21 +6,21 @@
 
     "encounter_dummy_start": "* The tutorial begins...?",
     "enemy_dummy_check": "AT 4 DF 0\n* Cotton heart and button eye\n* Looks just like a fluffy guy.",
-    "enemy_dummy_turn_1": "* The dummy gives you a soft\nsmile.",
+    "enemy_dummy_turn_1": "* The [name:dummy] gives you a soft\nsmile.",
     "enemy_dummy_turn_2": "* The power of fluffy boys is\nin the air.",
     "enemy_dummy_turn_3": "* Smells like cardboard.",
-    "enemy_dummy_low_health": "* The dummy looks like it's\nabout to fall over.",
+    "enemy_dummy_low_health": "* The [name:dummy] looks like it's\nabout to fall over.",
 
     "act_check": "Check",
     "act_dummy_smile": "Smile",
     "act_dummy_tell_story": "Tell Story",
-    "act_dummy_smile_1": "* You smile.[wait:5]\n* The dummy smiles back.",
-    "act_dummy_smile_2": "* It seems the dummy just wanted\nto see you happy.",
-    "act_dummy_tell_story_text": "* You and [name:ralsei] told the dummy\na bedtime story.\n* The enemies became [color:blue]TIRED[color:reset]...",
-    "act_dummy_ralsei_standard": "* [name:ralsei] bowed politely.\n* The dummy spiritually bowed\nin return.",
-    "act_dummy_other_standard": "* [var:name] straightened the\ndummy's hat.",
+    "act_dummy_smile_1": "* You smile.[wait:5]\n* The [name:dummy] smiles back.",
+    "act_dummy_smile_2": "* It seems the [name:dummy] just wanted\nto see you happy.",
+    "act_dummy_tell_story_text": "* You and [name:ralsei] told the [name:dummy]\na bedtime story.\n* The enemies became [color:blue]TIRED[color:reset]...",
+    "act_dummy_ralsei_standard": "* [name:ralsei] bowed politely.\n* The [name:dummy] spiritually bowed\nin return.",
+    "act_dummy_other_standard": "* [var:name] straightened the\n[name:dummy]'s hat.",
 
-    "battle_dummy_susie_punch_1": "* [name:susie] threw a punch at\nthe dummy.",
+    "battle_dummy_susie_punch_1": "* [name:susie] threw a punch at\nthe [name:dummy].",
     "battle_dummy_susie_punch_2": "* You,[wait:5] uh,[wait:5] look like a weenie.[wait:5]\n* I don't like beating up\npeople like that.",
     "battle_dummy_susie_punch_3": "* Aww,[wait:5] [name:susie]!",
 
@@ -31,7 +31,7 @@
     "world_room1_starwalker_2": "* I'm the original   [color:yellow][name:starwalker][color:reset]",
     "world_room1_savepoint_1": "* Silence echoes in the darkness\nof this familiar-yet-different\nscenery.",
     "world_room1_savepoint_2": "* The power of avoiding copying\nofficial music shines within\nyou.",
-    "world_room1_wall_guardian_1": "* I Am the Wall Guardian.[wait:5]\n* This Wall is Off Limits for you\nno-good wall slammers.",
+    "world_room1_wall_guardian_1": "* I Am the [name:wall] Guardian.[wait:5]\n* This [name:wall] is Off Limits for you\nno-good wall slammers.",
 
     "item_ultimate_candy_name": "UltimatCandy",
     "item_ultimate_candy_useName": "ULTIMATE CANDY",
