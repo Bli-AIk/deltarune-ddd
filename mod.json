@@ -63,7 +63,7 @@
         "kristal": {
             // End of config
         },
-        "langLibZh": {
+        "kristalI18n": {
             "defaultLanguage": "auto",
             "languages": ["en", "zh_hans"],
             "languageNames": {

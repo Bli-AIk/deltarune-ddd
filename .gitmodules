@@ -4,9 +4,9 @@
 [submodule ".helix"]
 	path = .helix
 	url = git@github.com:Bli-AIk/kristal-helix-config.git
-[submodule "libraries/langLib_zh_hans"]
-	path = libraries/langLib_zh_hans
-	url = https://github.com/Bli-AIk/kristal-langlib-zh-hans.git
+[submodule "libraries/kristal-i18n"]
+	path = libraries/kristal-i18n
+	url = https://github.com/Bli-AIk/kristal-i18n.git
 [submodule ".emacs"]
 	path = .emacs
 	url = https://github.com/Bli-AIk/kristal-emacs-config.git
