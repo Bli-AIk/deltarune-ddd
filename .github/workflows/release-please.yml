@@ -1,0 +1,85 @@
+name: Release Please
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: release-please-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - id: release
+        uses: googleapis/release-please-action@v5
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  build-release:
+    needs: release
+    if: needs.release.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release.outputs.tag_name }}
+          submodules: recursive
+      - name: Verify required submodules
+        run: |
+          set -euo pipefail
+          git submodule status --recursive
+          test -s libraries/kristal-i18n/lib.lua
+          test -s libraries/object-editor/lib.lua
+          test -s libraries/terminal-cli/lib.lua
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq love luajit rsync unzip xvfb zip
+      - name: Verify source
+        run: make test
+      - name: Validate release version
+        env:
+          RELEASE_TAG: ${{ needs.release.outputs.tag_name }}
+        run: |
+          version="$(python3 - <<'PY'
+          import re
+          from pathlib import Path
+          text = Path('mod.json').read_text(encoding='utf-8')
+          match = re.search(r'(?m)^\s*"version"\s*:\s*"([^"]+)"', text)
+          if not match:
+              raise SystemExit('Could not find mod.json version')
+          print(match.group(1))
+          PY
+          )"
+          test "$version" = "$RELEASE_TAG"
+      - name: Build release assets
+        run: |
+          ./build_standalone.sh
+          ./.github/scripts/build_mod.sh
+          .github/scripts/generate_sha256sums.sh dist
+          (cd dist && sha256sum -c SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thrash-machine-${{ needs.release.outputs.tag_name }}
+          path: dist/
+          if-no-files-found: error
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.release.outputs.tag_name }}
+        run: |
+          set -euo pipefail
+          files=(dist/*.love dist/*-win64.zip dist/*-mod.zip dist/SHA256SUMS)
+          gh release upload "$RELEASE_TAG" "${files[@]}" --clobber

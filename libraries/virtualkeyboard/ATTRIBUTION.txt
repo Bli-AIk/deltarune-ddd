@@ -1,0 +1,7 @@
+The virtual keyboard artwork and original LÖVE touch-control implementation
+were provided by zzy, Bilibili UID 3546380257724712.
+
+The accompanying documentation states that the library may be modified and
+redistributed and requests attribution where possible. This Kristal adapter
+keeps that attribution and changes the layout, coordinate conversion, input
+dispatch, lifecycle handling, and drawing integration for Kristal v0.10.

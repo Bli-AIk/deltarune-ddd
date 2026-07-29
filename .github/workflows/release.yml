@@ -1,0 +1,75 @@
+name: Build Tagged Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to rebuild
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tagged-release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          submodules: recursive
+      - name: Verify required submodules
+        run: |
+          set -euo pipefail
+          git submodule status --recursive
+          test -s libraries/kristal-i18n/lib.lua
+          test -s libraries/object-editor/lib.lua
+          test -s libraries/terminal-cli/lib.lua
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq love luajit rsync unzip xvfb zip
+      - name: Verify source and version
+        run: |
+          make test
+          version="$(python3 - <<'PY'
+          import re
+          from pathlib import Path
+          text = Path('mod.json').read_text(encoding='utf-8')
+          match = re.search(r'(?m)^\s*"version"\s*:\s*"([^"]+)"', text)
+          if not match:
+              raise SystemExit('Could not find mod.json version')
+          print(match.group(1))
+          PY
+          )"
+          test "$version" = "$RELEASE_TAG"
+      - name: Build release assets
+        run: |
+          ./build_standalone.sh
+          ./.github/scripts/build_mod.sh
+          .github/scripts/generate_sha256sums.sh dist
+          (cd dist && sha256sum -c SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thrash-machine-${{ env.RELEASE_TAG }}
+          path: dist/
+          if-no-files-found: error
+      - name: Publish release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --title "Thrash Machine $RELEASE_TAG" --generate-notes
+          fi
+          files=(dist/*.love dist/*-win64.zip dist/*-mod.zip dist/SHA256SUMS)
+          gh release upload "$RELEASE_TAG" "${files[@]}" --clobber

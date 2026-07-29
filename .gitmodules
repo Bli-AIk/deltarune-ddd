@@ -1,9 +1,6 @@
-[submodule "docs"]
-	path = docs
-	url = git@github.com:Bli-AIk/deltarune-ddd-docs.git
-[submodule ".helix"]
-	path = .helix
-	url = git@github.com:Bli-AIk/kristal-helix-config.git
+[submodule "libraries/object-editor"]
+	path = libraries/object-editor
+	url = https://github.com/Bli-AIk/object-editor.git
 [submodule "libraries/kristal-i18n"]
 	path = libraries/kristal-i18n
 	url = https://github.com/Bli-AIk/kristal-i18n.git
@@ -11,9 +8,12 @@
 	path = .emacs
 	url = https://github.com/Bli-AIk/kristal-emacs-config.git
 	branch = stable/lua
+[submodule ".helix"]
+	path = .helix
+	url = https://github.com/Bli-AIk/kristal-helix-config.git
 [submodule "libraries/terminal-cli"]
 	path = libraries/terminal-cli
 	url = https://github.com/Bli-AIk/kristal-terminal-cli.git
-[submodule "libraries/object-editor"]
-	path = libraries/object-editor
-	url = https://github.com/Bli-AIk/object-editor.git
+[submodule "libraries/kristal-debug-tools"]
+	path = libraries/kristal-debug-tools
+	url = https://github.com/Bli-AIk/kristal-debug-tools.git

@@ -1,0 +1,21 @@
+{
+    "id": "virtualkeyboard",
+    "version": "v0.1.0",
+    "engineVer": "v0.10.0",
+    "authors": ["zzy", "Bli-AIk"],
+    "config": {
+        "enabled": true,
+        "only_android": true,
+        "show_on_start": true,
+        "layout": "buttons",
+        "toggle_key": null,
+        "opacity": 0.78,
+        "button_scale": 2.5,
+        "button_radius": 38,
+        "direction_area_radius": 122,
+        "direction_deadzone": 0.2,
+        "joystick_scale": 2.5,
+        "joystick_radius": 108,
+        "joystick_deadzone": 0.35
+    }
+}

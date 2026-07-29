@@ -1,13 +1,13 @@
 {
     // The ID of your project. Should be unique!!
-    "id": "deltarune-ddd-ch1",
+    "id": "thrash-machine",
     // Displays on the main menu.
-    "name": "deltarune-ddd-ch1",
+    "name": "Thrash Machine",
     // Displays underneath the name. Optional.
-    "subtitle": "",
+    "subtitle": "Kristal Lua template",
 
     // The version of your project.
-    "version": "v1.0.0",
+    "version": "v0.0.0", // x-release-please-version
     // What version of the engine your project was made with.
     "engineVer": "v0.10.0",
 
@@ -85,6 +85,28 @@
             "enabled": true,
             "only_dev": true,
             "max_commands_per_frame": 8
+        },
+        "kristal-debug-tools": {
+            "enabled": true,
+            "only_dev": true,
+            "default_encounter": "dummy",
+            "initial_tp": null,
+            "initial_mercy": null
+        },
+        "virtualkeyboard": {
+            "enabled": true,
+            "only_android": true,
+            "show_on_start": true,
+            "layout": "buttons",
+            "toggle_key": null,
+            "opacity": 0.78,
+            "button_scale": 2.5,
+            "button_radius": 38,
+            "direction_area_radius": 122,
+            "direction_deadzone": 0.2,
+            "joystick_scale": 2.5,
+            "joystick_radius": 108,
+            "joystick_deadzone": 0.35
         }
     },
 

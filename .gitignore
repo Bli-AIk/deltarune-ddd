@@ -1,4 +1,8 @@
+.build/
+dist/
+.worktrees/
 .vscode/
+*.luac
+*.log
 *.tiled-session
-/.DS_Store
-/target
+.DS_Store
