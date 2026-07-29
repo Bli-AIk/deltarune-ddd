@@ -1,8 +1,7 @@
 {
     "mod.loaded": "Loaded [var:name]!",
 
-    "map_room1_name": "Test Map - Room 1",
-    "map_room2_name": "Test Map - Room 2",
+    "map_room_cc_kingbattle_name": "King Battle",
 
     "encounter_dummy_start": "* The tutorial begins...?",
     "enemy_dummy_check": "AT 4 DF 0\n* Cotton heart and button eye\n* Looks just like a fluffy guy.",
@@ -23,15 +22,6 @@
     "battle_dummy_susie_punch_1": "* [name:susie] threw a punch at\nthe [name:dummy].",
     "battle_dummy_susie_punch_2": "* You,[wait:5] uh,[wait:5] look like a weenie.[wait:5]\n* I don't like beating up\npeople like that.",
     "battle_dummy_susie_punch_3": "* Aww,[wait:5] [name:susie]!",
-
-    "world_room1_wall_cracked": "* The wall seems cracked.",
-    "world_room1_wall_susie_break": "* Hey,[wait:5] think I can break\nthis wall?",
-    "world_room1_wall_guess_not": "* Guess not.",
-    "world_room1_starwalker_1": "* These [color:yellow]stairs[color:reset] are [color:yellow]Pissing[color:reset] me\noff...",
-    "world_room1_starwalker_2": "* I'm the original   [color:yellow][name:starwalker][color:reset]",
-    "world_room1_savepoint_1": "* Silence echoes in the darkness\nof this familiar-yet-different\nscenery.",
-    "world_room1_savepoint_2": "* The power of avoiding copying\nofficial music shines within\nyou.",
-    "world_room1_wall_guardian_1": "* I Am the [name:wall] Guardian.[wait:5]\n* This [name:wall] is Off Limits for you\nno-good wall slammers.",
 
     "item_ultimate_candy_name": "UltimatCandy",
     "item_ultimate_candy_useName": "ULTIMATE CANDY",

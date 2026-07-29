@@ -2,27 +2,27 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-THRASH_MACHINE_MOD_DIR="${THRASH_MACHINE_MOD_DIR:-$SCRIPT_DIR}"
-THRASH_MACHINE_MOD_DIR="$(CDPATH= cd -- "$THRASH_MACHINE_MOD_DIR" && pwd -P)"
-THRASH_MACHINE_BUILD_ROOT="${THRASH_MACHINE_BUILD_ROOT:-$THRASH_MACHINE_MOD_DIR/.build/standalone}"
-THRASH_MACHINE_OUTPUT_DIR="${THRASH_MACHINE_OUTPUT_DIR:-$THRASH_MACHINE_MOD_DIR/dist}"
-THRASH_MACHINE_CACHE_DIR="${THRASH_MACHINE_CACHE_DIR:-$THRASH_MACHINE_MOD_DIR/.build/cache}"
+DELTARUNE_DDD_CH1_MOD_DIR="${DELTARUNE_DDD_CH1_MOD_DIR:-$SCRIPT_DIR}"
+DELTARUNE_DDD_CH1_MOD_DIR="$(CDPATH= cd -- "$DELTARUNE_DDD_CH1_MOD_DIR" && pwd -P)"
+DELTARUNE_DDD_CH1_BUILD_ROOT="${DELTARUNE_DDD_CH1_BUILD_ROOT:-$DELTARUNE_DDD_CH1_MOD_DIR/.build/standalone}"
+DELTARUNE_DDD_CH1_OUTPUT_DIR="${DELTARUNE_DDD_CH1_OUTPUT_DIR:-$DELTARUNE_DDD_CH1_MOD_DIR/dist}"
+DELTARUNE_DDD_CH1_CACHE_DIR="${DELTARUNE_DDD_CH1_CACHE_DIR:-$DELTARUNE_DDD_CH1_MOD_DIR/.build/cache}"
 
-THRASH_MACHINE_KRISTAL_REPO="${THRASH_MACHINE_KRISTAL_REPO:-https://github.com/KristalTeam/Kristal.git}"
-THRASH_MACHINE_KRISTAL_REF="${THRASH_MACHINE_KRISTAL_REF:-v0.10.0}"
-THRASH_MACHINE_KRISTAL_EXPECTED_VERSION="${THRASH_MACHINE_KRISTAL_EXPECTED_VERSION:-0.10.0}"
-THRASH_MACHINE_KRISTAL_DIR="${THRASH_MACHINE_KRISTAL_DIR:-${KRISTAL_ROOT:-$THRASH_MACHINE_MOD_DIR/.build/Kristal}}"
+DELTARUNE_DDD_CH1_KRISTAL_REPO="${DELTARUNE_DDD_CH1_KRISTAL_REPO:-https://github.com/KristalTeam/Kristal.git}"
+DELTARUNE_DDD_CH1_KRISTAL_REF="${DELTARUNE_DDD_CH1_KRISTAL_REF:-v0.10.0}"
+DELTARUNE_DDD_CH1_KRISTAL_EXPECTED_VERSION="${DELTARUNE_DDD_CH1_KRISTAL_EXPECTED_VERSION:-0.10.0}"
+DELTARUNE_DDD_CH1_KRISTAL_DIR="${DELTARUNE_DDD_CH1_KRISTAL_DIR:-${KRISTAL_ROOT:-$DELTARUNE_DDD_CH1_MOD_DIR/.build/Kristal}}"
 
-THRASH_MACHINE_MOD_ID="${THRASH_MACHINE_MOD_ID:-thrash-machine}"
-THRASH_MACHINE_PROJECT_TITLE="${THRASH_MACHINE_PROJECT_TITLE:-Thrash Machine}"
-THRASH_MACHINE_OUTPUT_BASENAME="${THRASH_MACHINE_OUTPUT_BASENAME:-thrash-machine}"
-THRASH_MACHINE_EXE_BASENAME="${THRASH_MACHINE_EXE_BASENAME:-THRASH-MACHINE}"
-THRASH_MACHINE_LOVE_VERSION="${THRASH_MACHINE_LOVE_VERSION:-11.5}"
-THRASH_MACHINE_LOVE_ARCH="${THRASH_MACHINE_LOVE_ARCH:-win64}"
-THRASH_MACHINE_LOVE_WINDOWS_ZIP_URL="${THRASH_MACHINE_LOVE_WINDOWS_ZIP_URL:-https://github.com/love2d/love/releases/download/${THRASH_MACHINE_LOVE_VERSION}/love-${THRASH_MACHINE_LOVE_VERSION}-${THRASH_MACHINE_LOVE_ARCH}.zip}"
-THRASH_MACHINE_BUILD_VARIANTS="${THRASH_MACHINE_BUILD_VARIANTS:-release debug}"
-THRASH_MACHINE_BUILD_WINDOWS_EXE="${THRASH_MACHINE_BUILD_WINDOWS_EXE:-1}"
-THRASH_MACHINE_UPDATE_REPOS="${THRASH_MACHINE_UPDATE_REPOS:-0}"
+DELTARUNE_DDD_CH1_MOD_ID="${DELTARUNE_DDD_CH1_MOD_ID:-deltarune-ddd-ch1}"
+DELTARUNE_DDD_CH1_PROJECT_TITLE="${DELTARUNE_DDD_CH1_PROJECT_TITLE:-deltarune distant, divergent dream}"
+DELTARUNE_DDD_CH1_OUTPUT_BASENAME="${DELTARUNE_DDD_CH1_OUTPUT_BASENAME:-deltarune-ddd-ch1}"
+DELTARUNE_DDD_CH1_EXE_BASENAME="${DELTARUNE_DDD_CH1_EXE_BASENAME:-DELTARUNE-DDD-CH1}"
+DELTARUNE_DDD_CH1_LOVE_VERSION="${DELTARUNE_DDD_CH1_LOVE_VERSION:-11.5}"
+DELTARUNE_DDD_CH1_LOVE_ARCH="${DELTARUNE_DDD_CH1_LOVE_ARCH:-win64}"
+DELTARUNE_DDD_CH1_LOVE_WINDOWS_ZIP_URL="${DELTARUNE_DDD_CH1_LOVE_WINDOWS_ZIP_URL:-https://github.com/love2d/love/releases/download/${DELTARUNE_DDD_CH1_LOVE_VERSION}/love-${DELTARUNE_DDD_CH1_LOVE_VERSION}-${DELTARUNE_DDD_CH1_LOVE_ARCH}.zip}"
+DELTARUNE_DDD_CH1_BUILD_VARIANTS="${DELTARUNE_DDD_CH1_BUILD_VARIANTS:-release debug}"
+DELTARUNE_DDD_CH1_BUILD_WINDOWS_EXE="${DELTARUNE_DDD_CH1_BUILD_WINDOWS_EXE:-1}"
+DELTARUNE_DDD_CH1_UPDATE_REPOS="${DELTARUNE_DDD_CH1_UPDATE_REPOS:-0}"
 
 log() {
     printf '[build] %s\n' "$*" >&2
@@ -36,25 +36,25 @@ need_cmd() {
 }
 
 ensure_kristal() {
-    if [ -d "$THRASH_MACHINE_KRISTAL_DIR/.git" ]; then
-        if [ "$THRASH_MACHINE_UPDATE_REPOS" = "1" ]; then
-            git -C "$THRASH_MACHINE_KRISTAL_DIR" fetch --tags origin
+    if [ -d "$DELTARUNE_DDD_CH1_KRISTAL_DIR/.git" ]; then
+        if [ "$DELTARUNE_DDD_CH1_UPDATE_REPOS" = "1" ]; then
+            git -C "$DELTARUNE_DDD_CH1_KRISTAL_DIR" fetch --tags origin
         fi
-    elif [ -e "$THRASH_MACHINE_KRISTAL_DIR" ]; then
-        printf 'Kristal path exists but is not a Git checkout: %s\n' "$THRASH_MACHINE_KRISTAL_DIR" >&2
+    elif [ -e "$DELTARUNE_DDD_CH1_KRISTAL_DIR" ]; then
+        printf 'Kristal path exists but is not a Git checkout: %s\n' "$DELTARUNE_DDD_CH1_KRISTAL_DIR" >&2
         exit 1
     else
-        mkdir -p "$(dirname "$THRASH_MACHINE_KRISTAL_DIR")"
-        git clone --filter=blob:none "$THRASH_MACHINE_KRISTAL_REPO" "$THRASH_MACHINE_KRISTAL_DIR"
+        mkdir -p "$(dirname "$DELTARUNE_DDD_CH1_KRISTAL_DIR")"
+        git clone --filter=blob:none "$DELTARUNE_DDD_CH1_KRISTAL_REPO" "$DELTARUNE_DDD_CH1_KRISTAL_DIR"
     fi
 
-    if ! git -C "$THRASH_MACHINE_KRISTAL_DIR" rev-parse --verify --quiet "${THRASH_MACHINE_KRISTAL_REF}^{commit}" >/dev/null; then
-        git -C "$THRASH_MACHINE_KRISTAL_DIR" fetch --depth 1 origin "refs/tags/${THRASH_MACHINE_KRISTAL_REF}:refs/tags/${THRASH_MACHINE_KRISTAL_REF}"
+    if ! git -C "$DELTARUNE_DDD_CH1_KRISTAL_DIR" rev-parse --verify --quiet "${DELTARUNE_DDD_CH1_KRISTAL_REF}^{commit}" >/dev/null; then
+        git -C "$DELTARUNE_DDD_CH1_KRISTAL_DIR" fetch --depth 1 origin "refs/tags/${DELTARUNE_DDD_CH1_KRISTAL_REF}:refs/tags/${DELTARUNE_DDD_CH1_KRISTAL_REF}"
     fi
 
-    version="$(git -C "$THRASH_MACHINE_KRISTAL_DIR" show "${THRASH_MACHINE_KRISTAL_REF}:VERSION" | tr -d '\r\n')"
-    if [ "$version" != "$THRASH_MACHINE_KRISTAL_EXPECTED_VERSION" ]; then
-        printf 'Kristal %s reports VERSION=%s, expected %s\n' "$THRASH_MACHINE_KRISTAL_REF" "$version" "$THRASH_MACHINE_KRISTAL_EXPECTED_VERSION" >&2
+    version="$(git -C "$DELTARUNE_DDD_CH1_KRISTAL_DIR" show "${DELTARUNE_DDD_CH1_KRISTAL_REF}:VERSION" | tr -d '\r\n')"
+    if [ "$version" != "$DELTARUNE_DDD_CH1_KRISTAL_EXPECTED_VERSION" ]; then
+        printf 'Kristal %s reports VERSION=%s, expected %s\n' "$DELTARUNE_DDD_CH1_KRISTAL_REF" "$version" "$DELTARUNE_DDD_CH1_KRISTAL_EXPECTED_VERSION" >&2
         exit 1
     fi
 }
@@ -63,7 +63,7 @@ export_kristal() {
     stage_dir="$1"
     rm -rf "$stage_dir"
     mkdir -p "$stage_dir"
-    git -C "$THRASH_MACHINE_KRISTAL_DIR" archive --format=tar "$THRASH_MACHINE_KRISTAL_REF" | tar -x -C "$stage_dir"
+    git -C "$DELTARUNE_DDD_CH1_KRISTAL_DIR" archive --format=tar "$DELTARUNE_DDD_CH1_KRISTAL_REF" | tar -x -C "$stage_dir"
     rm -rf "$stage_dir/.github" "$stage_dir/mods" "$stage_dir/build" "$stage_dir/output"
 }
 
@@ -97,7 +97,7 @@ copy_mod() {
         --exclude='/.gitignore' \
         --exclude='*.tiled-project' \
         --exclude='*.tiled-session' \
-        "$THRASH_MACHINE_MOD_DIR/" "$stage_mod/"
+        "$DELTARUNE_DDD_CH1_MOD_DIR/" "$stage_mod/"
 
     if [ "$variant" = "release" ]; then
         rm -rf "$stage_mod/libraries/object-editor"
@@ -119,7 +119,7 @@ zip_dir() {
             (cd "$source" && zip -9 -q -r "$output" .)
         fi
     else
-        python3 "$THRASH_MACHINE_MOD_DIR/build_standalone.py" zip-dir "$output" "$source" "$prefix"
+        python3 "$DELTARUNE_DDD_CH1_MOD_DIR/build_standalone.py" zip-dir "$output" "$source" "$prefix"
     fi
 }
 
@@ -142,39 +142,39 @@ prepare_stage() {
             ;;
     esac
 
-    stage_dir="$THRASH_MACHINE_BUILD_ROOT/$variant/source"
+    stage_dir="$DELTARUNE_DDD_CH1_BUILD_ROOT/$variant/source"
     export_kristal "$stage_dir"
-    stage_mod="$stage_dir/mods/$THRASH_MACHINE_MOD_ID"
+    stage_mod="$stage_dir/mods/$DELTARUNE_DDD_CH1_MOD_ID"
     copy_mod "$stage_mod" "$variant"
     if [ "$variant" = "release" ]; then
-        identity="$THRASH_MACHINE_MOD_ID"
-        title="$THRASH_MACHINE_PROJECT_TITLE"
+        identity="$DELTARUNE_DDD_CH1_MOD_ID"
+        title="$DELTARUNE_DDD_CH1_PROJECT_TITLE"
     else
-        identity="${THRASH_MACHINE_MOD_ID}_debug"
-        title="${THRASH_MACHINE_PROJECT_TITLE} Debug"
+        identity="${DELTARUNE_DDD_CH1_MOD_ID}_debug"
+        title="${DELTARUNE_DDD_CH1_PROJECT_TITLE} Debug"
     fi
-    python3 "$THRASH_MACHINE_MOD_DIR/build_standalone.py" patch-lua-config \
-        "$stage_dir" "$THRASH_MACHINE_MOD_ID" "$release_mode" \
+    python3 "$DELTARUNE_DDD_CH1_MOD_DIR/build_standalone.py" patch-lua-config \
+        "$stage_dir" "$DELTARUNE_DDD_CH1_MOD_ID" "$release_mode" \
         "$identity" "$title"
-    if [ "${THRASH_MACHINE_ANDROID_TOUCH_SKIP_INTRO:-0}" = "1" ]; then
-        python3 "$THRASH_MACHINE_MOD_DIR/build_standalone.py" patch-android-loading-touch \
+    if [ "${DELTARUNE_DDD_CH1_ANDROID_TOUCH_SKIP_INTRO:-0}" = "1" ]; then
+        python3 "$DELTARUNE_DDD_CH1_MOD_DIR/build_standalone.py" patch-android-loading-touch \
             "$stage_dir/src/engine/loadstate.lua"
     fi
-    python3 "$THRASH_MACHINE_MOD_DIR/build_standalone.py" patch-mod-manifest \
+    python3 "$DELTARUNE_DDD_CH1_MOD_DIR/build_standalone.py" patch-mod-manifest \
         "$stage_mod/mod.json" "$mod_dev" "$object_editor"
     printf '%s\n' "$stage_dir"
 }
 
 ensure_love_windows() {
-    [ "$THRASH_MACHINE_BUILD_WINDOWS_EXE" = "1" ] || return 0
-    mkdir -p "$THRASH_MACHINE_CACHE_DIR"
-    love_zip="$THRASH_MACHINE_CACHE_DIR/love-${THRASH_MACHINE_LOVE_VERSION}-${THRASH_MACHINE_LOVE_ARCH}.zip"
-    love_dir="$THRASH_MACHINE_CACHE_DIR/love-${THRASH_MACHINE_LOVE_VERSION}-${THRASH_MACHINE_LOVE_ARCH}"
+    [ "$DELTARUNE_DDD_CH1_BUILD_WINDOWS_EXE" = "1" ] || return 0
+    mkdir -p "$DELTARUNE_DDD_CH1_CACHE_DIR"
+    love_zip="$DELTARUNE_DDD_CH1_CACHE_DIR/love-${DELTARUNE_DDD_CH1_LOVE_VERSION}-${DELTARUNE_DDD_CH1_LOVE_ARCH}.zip"
+    love_dir="$DELTARUNE_DDD_CH1_CACHE_DIR/love-${DELTARUNE_DDD_CH1_LOVE_VERSION}-${DELTARUNE_DDD_CH1_LOVE_ARCH}"
     if [ ! -f "$love_zip" ]; then
-        curl --fail --location --output "$love_zip" "$THRASH_MACHINE_LOVE_WINDOWS_ZIP_URL"
+        curl --fail --location --output "$love_zip" "$DELTARUNE_DDD_CH1_LOVE_WINDOWS_ZIP_URL"
     fi
     if [ ! -d "$love_dir" ]; then
-        extract_dir="$THRASH_MACHINE_CACHE_DIR/love-${THRASH_MACHINE_LOVE_VERSION}-${THRASH_MACHINE_LOVE_ARCH}.extract"
+        extract_dir="$DELTARUNE_DDD_CH1_CACHE_DIR/love-${DELTARUNE_DDD_CH1_LOVE_VERSION}-${DELTARUNE_DDD_CH1_LOVE_ARCH}.extract"
         rm -rf "$extract_dir"
         mkdir -p "$extract_dir"
         unzip -q "$love_zip" -d "$extract_dir"
@@ -192,20 +192,20 @@ ensure_love_windows() {
 build_variant() {
     variant="$1"
     stage_dir="$(prepare_stage "$variant")"
-    love_file="$THRASH_MACHINE_OUTPUT_DIR/${THRASH_MACHINE_OUTPUT_BASENAME}-${variant}.love"
+    love_file="$DELTARUNE_DDD_CH1_OUTPUT_DIR/${DELTARUNE_DDD_CH1_OUTPUT_BASENAME}-${variant}.love"
     zip_dir "$love_file" "$stage_dir"
 
-    if [ "$THRASH_MACHINE_BUILD_WINDOWS_EXE" = "1" ]; then
-        love_dir="$THRASH_MACHINE_CACHE_DIR/love-${THRASH_MACHINE_LOVE_VERSION}-${THRASH_MACHINE_LOVE_ARCH}"
-        package_name="${THRASH_MACHINE_OUTPUT_BASENAME}-${variant}-${THRASH_MACHINE_LOVE_ARCH}"
-        package_dir="$THRASH_MACHINE_OUTPUT_DIR/$package_name"
-        exe_name="${THRASH_MACHINE_EXE_BASENAME}-${variant}.exe"
+    if [ "$DELTARUNE_DDD_CH1_BUILD_WINDOWS_EXE" = "1" ]; then
+        love_dir="$DELTARUNE_DDD_CH1_CACHE_DIR/love-${DELTARUNE_DDD_CH1_LOVE_VERSION}-${DELTARUNE_DDD_CH1_LOVE_ARCH}"
+        package_name="${DELTARUNE_DDD_CH1_OUTPUT_BASENAME}-${variant}-${DELTARUNE_DDD_CH1_LOVE_ARCH}"
+        package_dir="$DELTARUNE_DDD_CH1_OUTPUT_DIR/$package_name"
+        exe_name="${DELTARUNE_DDD_CH1_EXE_BASENAME}-${variant}.exe"
         rm -rf "$package_dir"
         mkdir -p "$package_dir"
         cat "$love_dir/love.exe" "$love_file" > "$package_dir/$exe_name"
         cp "$love_dir"/*.dll "$package_dir/"
         test ! -f "$love_dir/license.txt" || cp "$love_dir/license.txt" "$package_dir/"
-        zip_dir "$THRASH_MACHINE_OUTPUT_DIR/${package_name}.zip" "$package_dir" "$package_name"
+        zip_dir "$DELTARUNE_DDD_CH1_OUTPUT_DIR/${package_name}.zip" "$package_dir" "$package_name"
     fi
 }
 
@@ -217,8 +217,8 @@ need_cmd unzip
 need_cmd curl
 need_cmd zip
 ensure_kristal
-mkdir -p "$THRASH_MACHINE_OUTPUT_DIR"
+mkdir -p "$DELTARUNE_DDD_CH1_OUTPUT_DIR"
 ensure_love_windows
-for variant in $THRASH_MACHINE_BUILD_VARIANTS; do
+for variant in $DELTARUNE_DDD_CH1_BUILD_VARIANTS; do
     build_variant "$variant"
 done

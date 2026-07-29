@@ -1,10 +1,10 @@
 {
     // The ID of your project. Should be unique!!
-    "id": "thrash-machine",
+    "id": "deltarune-ddd-ch1",
     // Displays on the main menu.
-    "name": "Thrash Machine",
+    "name": "deltarune distant, divergent dream",
     // Displays underneath the name. Optional.
-    "subtitle": "Kristal Lua template",
+    "subtitle": "A Reimagining of deltarune",
 
     // The version of your project.
     "version": "v0.0.0", // x-release-please-version
@@ -17,7 +17,7 @@
     "chapter": 4,
 
     // The map that you start in when first starting the project.
-    "map": "room1",
+    "map": "room_cc_kingbattle",
 
     // The party. The first character is the player.
     "party": ["kris", "susie", "ralsei"],

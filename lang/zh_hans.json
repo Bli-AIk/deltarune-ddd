@@ -1,8 +1,7 @@
 {
     "mod.loaded": "已加载 [var:name]！",
 
-    "map_room1_name": "测试地图 - 房间 1",
-    "map_room2_name": "测试地图 - 房间 2",
+    "map_room_cc_kingbattle_name": "国王战",
 
     "encounter_dummy_start": "* 教学开始了...？",
     "enemy_dummy_check": "攻击 4 防御 0\n* 棉花心和纽扣眼。\n* 看起来就像个毛茸茸的小家伙。",
@@ -23,15 +22,6 @@
     "battle_dummy_susie_punch_1": "* [name:susie]朝[name:dummy]\n挥了一拳。",
     "battle_dummy_susie_punch_2": "* 你，[wait:5]呃，[wait:5]看起来像个怂包。[wait:5]\n* 我不喜欢揍\n这种人。",
     "battle_dummy_susie_punch_3": "* 哎呀，[wait:5][name:susie]！",
-
-    "world_room1_wall_cracked": "* 墙上似乎有裂缝。",
-    "world_room1_wall_susie_break": "* 嘿，[wait:5]你觉得我能打破\n这面墙吗？",
-    "world_room1_wall_guess_not": "* 看来不行。",
-    "world_room1_starwalker_1": "* 这些[color:yellow]楼梯[color:reset]真让\n我[color:yellow]火大[color:reset]...",
-    "world_room1_starwalker_2": "* 我是正牌的   [color:yellow][name:starwalker][color:reset]",
-    "world_room1_savepoint_1": "* 寂静在这片熟悉却又陌生的\n黑暗景色中\n回响。",
-    "world_room1_savepoint_2": "* 避免复制官方音乐的力量\n在你心中闪耀。",
-    "world_room1_wall_guardian_1": "* 吾乃[name:wall]守卫。[wait:5]\n* 此[name:wall]禁止你们这些\n没规矩的撞墙者靠近。",
 
     "item_ultimate_candy_name": "终极糖果",
     "item_ultimate_candy_useName": "终极糖果",

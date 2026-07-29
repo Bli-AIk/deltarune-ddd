@@ -40,20 +40,20 @@ jobs:
         run: |
           set -euo pipefail
           files=(
-            dist/thrash-machine-release.love
-            dist/thrash-machine-debug.love
-            dist/thrash-machine-release-win64.zip
-            dist/thrash-machine-debug-win64.zip
-            dist/thrash-machine-mod.zip
+            dist/deltarune-ddd-ch1-release.love
+            dist/deltarune-ddd-ch1-debug.love
+            dist/deltarune-ddd-ch1-release-win64.zip
+            dist/deltarune-ddd-ch1-debug-win64.zip
+            dist/deltarune-ddd-ch1-mod.zip
           )
           for file in "${files[@]}"; do
             test -s "$file"
             unzip -t "$file" >/dev/null
           done
-          unzip -Z1 dist/thrash-machine-mod.zip | grep -Fx mod.json >/dev/null
-          test -z "$(unzip -Z1 dist/thrash-machine-mod.zip | grep '^libraries/object-editor/' || true)"
-          test -z "$(unzip -Z1 dist/thrash-machine-mod.zip | grep '^libraries/terminal-cli/' || true)"
-          test -z "$(unzip -Z1 dist/thrash-machine-mod.zip | grep '^libraries/kristal-debug-tools/' || true)"
+          unzip -Z1 dist/deltarune-ddd-ch1-mod.zip | grep -Fx mod.json >/dev/null
+          test -z "$(unzip -Z1 dist/deltarune-ddd-ch1-mod.zip | grep '^libraries/object-editor/' || true)"
+          test -z "$(unzip -Z1 dist/deltarune-ddd-ch1-mod.zip | grep '^libraries/terminal-cli/' || true)"
+          test -z "$(unzip -Z1 dist/deltarune-ddd-ch1-mod.zip | grep '^libraries/kristal-debug-tools/' || true)"
       - name: Generate and verify SHA-256 manifest
         run: |
           .github/scripts/generate_sha256sums.sh dist
@@ -61,6 +61,6 @@ jobs:
           (cd dist && sha256sum -c SHA256SUMS)
       - uses: actions/upload-artifact@v4
         with:
-          name: thrash-machine-${{ github.sha }}
+          name: deltarune-ddd-ch1-${{ github.sha }}
           path: dist/
           if-no-files-found: error
