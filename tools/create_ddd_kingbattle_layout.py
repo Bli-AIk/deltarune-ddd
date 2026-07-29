@@ -28,6 +28,7 @@ if str(SCRIPT_PATH.parent) not in sys.path:
     sys.path.insert(0, str(SCRIPT_PATH.parent))
 
 import export_ddd_assets as source
+import kingbattle_layout_style as style
 
 
 DEFAULT_OUTPUT = (
@@ -177,6 +178,10 @@ def build_layout(collection: bpy.types.Collection) -> bpy.types.Object:
         )
         suit_asset = source.prepare_asset(source_by_suit[suit_name], depsgraph, collection)
         attach_meshes(suit, suit_asset, suit_name)
+
+    # This adds the authored purple outline and inset black fill meshes. It
+    # does not alter any pendant, cage, or camera placement.
+    style.apply_layout_style(collection)
 
     camera_anchor = make_empty(collection, "anchor_camera", "camera")
     set_parent(camera_anchor, root)

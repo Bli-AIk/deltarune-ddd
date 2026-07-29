@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.11" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="50" height="12" tilewidth="40" tileheight="40" infinite="0" nextlayerid="10" nextobjectid="43">
+<map version="1.11" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="50" height="10" tilewidth="40" tileheight="40" infinite="0" nextlayerid="10" nextobjectid="43">
  <editorsettings>
   <export target="room_cc_kingbattle.lua" format="lua"/>
  </editorsettings>
@@ -14,43 +14,40 @@
  </properties>
  <tileset firstgid="1" source="../tilesets/bg_tiles_castle.tsx"/>
  <tileset firstgid="41" source="../tilesets/platform.tsx"/>
- <layer id="1" name="floor" width="50" height="12">
+ <layer id="1" name="floor" width="50" height="10">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,23,23,23,23,23,23,23,23,23,23,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
 23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
 23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
-23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,23,23,23,23,23,23,23,23,23,23,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23,23
 </data>
  </layer>
  <objectgroup id="6" name="objects_under">
-  <object id="39" gid="41" x="600" y="480" width="640" height="444"/>
+  <object id="39" gid="41" x="600" y="560" width="640" height="444"/>
  </objectgroup>
  <objectgroup id="7" name="objects_party"/>
  <objectgroup color="#0000ff" id="4" name="collision">
-  <object id="29" x="0" y="120" width="720" height="40"/>
-  <object id="30" x="720" y="80" width="400" height="40"/>
-  <object id="32" x="1120" y="120" width="880" height="40"/>
-  <object id="33" x="1120" y="320" width="880" height="40"/>
-  <object id="34" x="720" y="360" width="400" height="40"/>
-  <object id="36" x="0" y="320" width="720" height="40"/>
-  <object id="37" x="-40" y="160" width="40" height="160"/>
-  <object id="38" x="2000" y="160" width="40" height="160"/>
+  <object id="29" x="0" y="200" width="720" height="40"/>
+  <object id="30" x="720" y="160" width="400" height="40"/>
+  <object id="32" x="1120" y="200" width="880" height="40"/>
+  <object id="33" x="1120" y="400" width="880" height="40"/>
+  <object id="36" x="0" y="400" width="720" height="40"/>
+  <object id="37" x="-40" y="240" width="40" height="160"/>
+  <object id="38" x="2000" y="240" width="40" height="160"/>
  </objectgroup>
  <objectgroup color="#7f00ff" id="5" name="markers">
-  <object id="27" name="spawn" x="920" y="240">
+  <object id="27" name="spawn" x="920" y="320">
    <point/>
   </object>
  </objectgroup>
  <objectgroup color="#ffc800" id="9" name="controllers">
-  <object id="42" type="ddd_scene" x="920" y="240">
+  <object id="42" type="ddd_scene" x="920" y="320">
    <properties>
     <property name="asset_root" value="assets/3d/kingbattle"/>
     <property name="scene" value="kingbattle_3d"/>

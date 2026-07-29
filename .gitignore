@@ -4,5 +4,7 @@ dist/
 .vscode/
 *.luac
 *.log
+*.blend1
+__pycache__/
 *.tiled-session
 .DS_Store

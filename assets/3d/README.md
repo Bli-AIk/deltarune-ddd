@@ -1,31 +1,34 @@
 # DDD 3D Assets
 
-The assets in `kingbattle/` are generated from
-`/home/aik/Documents/Blender/ddd-8.blend`. Regenerate them from the mod root:
+`kingbattle/kingbattle_layout.blend` is the authority for the full King Battle
+background: cage, chains, card suits, camera anchors, and all static
+transforms. Do all scene composition in the `DDD_KINGBATTLE` collection in
+Blender. Lua only selects shader parameters by material name.
+
+After editing the layout, export it from the mod root:
 
 ```sh
-blender --background /home/aik/Documents/Blender/ddd-8.blend \
+blender --background assets/3d/kingbattle/kingbattle_layout.blend \
   --python tools/export_ddd_assets.py -- --output assets/3d/kingbattle
 ```
 
-The default deliverables are `cage.glb`, `chain.glb`, and `suits.glb`.
-`suits.glb` preserves four named, independently addressable nodes: `club`,
-`spade`, `heart`, and `diamond`. Add `--also-obj` to also create native Blender
-axis OBJ/MTL files for loader diagnostics.
+The exporter validates and emits `kingbattle_scene.glb`; it never lays out,
+repositions, rotates, or scales scene objects. `manifest.json` records the
+resulting GLB contract.
 
-`manifest.json` is the loader contract. All source curves, modifiers, and face
-instances are evaluated and triangulated. Each asset mesh is centered on its
-axis-aligned bounding-box center. GLB files use the glTF convention: `+X`
-right, `+Y` up, `-Z` forward. Card-suit fronts face `+Z`.
+The visual-style migration is idempotent and can be reapplied to an existing
+layout when source geometry is refreshed:
 
-The source has no authored material slots or texture images. Stable material
-names (`cage_metal`, `chain_metal`, `suit_dark_metal`, and `suit_red_metal`)
-are embedded for the Kristal shader layer to map to its own parameters.
+```sh
+blender --background assets/3d/kingbattle/kingbattle_layout.blend \
+  --python tools/apply_kingbattle_layout_style.py
+```
 
-Source mapping:
+The material contract is deliberately small:
 
-| Exported group | Blender source |
+| Material | Authored role |
 | --- | --- |
-| `cage.glb` | `hori`, `vert` curves in `cage` |
-| `chain.glb` | evaluated face instances of `chain` over `chain.001` |
-| `suits.glb` | `Curve`, `Curve.001`, `Curve.002`, `Curve.003` |
+| `cage_metal` | purple-tinted cage metal |
+| `chain_metal` | purple-tinted chain metal |
+| `suit_outline` | purple outer silhouette |
+| `suit_fill` | inset black face |
