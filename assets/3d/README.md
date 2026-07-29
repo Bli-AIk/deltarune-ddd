@@ -22,9 +22,11 @@ second root rotation, negative scale, or Lua-side coordinate correction.
 After editing the layout, export it from the mod root:
 
 ```sh
-blender --background assets/3d/kingbattle/kingbattle_layout.blend \
-  --python tools/export_ddd_assets.py -- --output assets/3d/kingbattle
+./tools/export_ddd_assets.sh
 ```
+
+Set `BLENDER_BIN` when Blender is not on `PATH`, and pass extra exporter
+options after the script name if needed.
 
 The exporter validates and emits `kingbattle_scene.glb`; it never lays out,
 repositions, rotates, scales, or remaps scene objects. It also verifies that
