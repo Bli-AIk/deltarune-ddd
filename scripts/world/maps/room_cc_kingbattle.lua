@@ -9,8 +9,8 @@ return {
   height = 12,
   tilewidth = 40,
   tileheight = 40,
-  nextlayerid = 8,
-  nextobjectid = 41,
+  nextlayerid = 10,
+  nextobjectid = 43,
   properties = {
     ["name"] = "King Battle",
     ["name_id"] = "map_room_cc_kingbattle_name",
@@ -93,21 +93,6 @@ return {
           rotation = 0,
           opacity = 1,
           gid = 41,
-          visible = true,
-          properties = {}
-        },
-        {
-          id = 40,
-          name = "",
-          type = "",
-          shape = "rectangle",
-          x = 745,
-          y = 90,
-          width = 350,
-          height = 90,
-          rotation = 0,
-          opacity = 1,
-          gid = 42,
           visible = true,
           properties = {}
         }
@@ -283,6 +268,39 @@ return {
           opacity = 1,
           visible = true,
           properties = {}
+        }
+      }
+    },
+    {
+      type = "objectgroup",
+      draworder = "topdown",
+      id = 9,
+      name = "controllers",
+      class = "",
+      visible = true,
+      opacity = 1,
+      offsetx = 0,
+      offsety = 0,
+      parallaxx = 1,
+      parallaxy = 1,
+      properties = {},
+      objects = {
+        {
+          id = 42,
+          name = "",
+          type = "ddd_scene",
+          shape = "point",
+          x = 920,
+          y = 240,
+          width = 0,
+          height = 0,
+          rotation = 0,
+          opacity = 1,
+          visible = true,
+          properties = {
+            ["asset_root"] = "assets/3d/kingbattle",
+            ["scene"] = "kingbattle_3d"
+          }
         }
       }
     }

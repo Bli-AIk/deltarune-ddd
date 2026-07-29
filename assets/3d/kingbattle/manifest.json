@@ -1,0 +1,66 @@
+{
+  "format_version": 2,
+  "source_blend": "kingbattle_layout.blend",
+  "blender_version": "5.2.0 LTS",
+  "coordinate_system": {
+    "format": "glTF 2.0 binary (.glb)",
+    "handedness": "right",
+    "right": "+X",
+    "forward": "-Z",
+    "up": "+Y",
+    "units": "Blender scene units",
+    "asset_origin": "DDD_SCENE_ROOT",
+    "scene_layout": "Blender collection hierarchy"
+  },
+  "authored_scene": {
+    "file": "kingbattle_scene.glb",
+    "collection": "DDD_KINGBATTLE",
+    "root": "DDD_SCENE_ROOT",
+    "required_nodes": [
+      "DDD_SCENE_ROOT",
+      "cage",
+      "anchor_camera",
+      "anchor_camera_target",
+      "anchor_fountain",
+      "pendant_club",
+      "pendant_spade",
+      "pendant_heart",
+      "pendant_diamond",
+      "chain_club",
+      "chain_spade",
+      "chain_heart",
+      "chain_diamond",
+      "club",
+      "spade",
+      "heart",
+      "diamond"
+    ],
+    "material_names": [
+      "cage_metal",
+      "chain_metal",
+      "suit_dark_metal",
+      "suit_red_metal"
+    ],
+    "vertex_count": 7492,
+    "local_bounds": {
+      "min": [
+        -11.428536,
+        -11.785295,
+        -18.770185
+      ],
+      "max": [
+        11.428536,
+        8.185294,
+        2.770185
+      ],
+      "size": [
+        22.857073,
+        19.970589,
+        21.540371
+      ]
+    },
+    "glb_mesh_count": 46,
+    "glb_node_count": 63,
+    "triangle_count": 13036
+  }
+}
