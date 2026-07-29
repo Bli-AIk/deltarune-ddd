@@ -8,6 +8,11 @@ local metal_surface = {
 local degree = math.pi / 180
 -- Keep the authored motion relationships while making the scene settle more slowly.
 local motion_speed_scale = 0.60
+-- Motion vectors are node-local Blender axes. The pendant roots use local X;
+-- the chain, suit, and link nodes use local Z. These are the authored axes
+-- for their shared vertical-plane motion; the vertical chain axis is excluded.
+local pendant_vertical_plane_axis = { 1.0, 0.0, 0.0 }
+local suit_and_link_vertical_plane_axis = { 0.0, 0.0, 1.0 }
 
 return {
     version = 2,
@@ -123,12 +128,12 @@ return {
             far = 96.0,
         },
         motions = {
-            -- The vertical chain axis stays fixed. Both layers rotate only
-            -- around the authored horizontal swing axis.
+            -- The vertical chain axis stays fixed. Both layers turn around
+            -- the horizontal axis contained in the authored vertical plane.
             {
                 node = "pendant_club",
                 kind = "sway",
-                axis = { 0.0, 1.0, 0.0 },
+                axis = pendant_vertical_plane_axis,
                 amplitude = 2.2 * degree,
                 speed = 0.62 * motion_speed_scale,
                 phase = 0.65,
@@ -136,7 +141,7 @@ return {
             {
                 node = "pendant_spade",
                 kind = "sway",
-                axis = { 0.0, 1.0, 0.0 },
+                axis = pendant_vertical_plane_axis,
                 amplitude = 1.8 * degree,
                 speed = 0.78 * motion_speed_scale,
                 phase = 3.55,
@@ -144,7 +149,7 @@ return {
             {
                 node = "pendant_heart",
                 kind = "sway",
-                axis = { 0.0, 1.0, 0.0 },
+                axis = pendant_vertical_plane_axis,
                 amplitude = 2.5 * degree,
                 speed = 0.70 * motion_speed_scale,
                 phase = 4.75,
@@ -152,7 +157,7 @@ return {
             {
                 node = "pendant_diamond",
                 kind = "sway",
-                axis = { 0.0, 1.0, 0.0 },
+                axis = pendant_vertical_plane_axis,
                 amplitude = 2.0 * degree,
                 speed = 0.88 * motion_speed_scale,
                 phase = 2.10,
@@ -161,11 +166,11 @@ return {
                 node = "chain_club",
                 kind = "chain_sway",
                 terminal = "club",
-                axis = { 0.0, 1.0, 0.0 },
+                axis = suit_and_link_vertical_plane_axis,
                 amplitude = 41 * degree,
                 speed = 1.25 * motion_speed_scale,
                 phase = 0.65,
-                link_axis = { 0.0, 1.0, 0.0 },
+                link_axis = suit_and_link_vertical_plane_axis,
                 link_amplitude = 25 * degree,
                 link_phase_lag = 0.70,
                 link_min_weight = 0.07,
@@ -175,11 +180,11 @@ return {
                 node = "chain_spade",
                 kind = "chain_sway",
                 terminal = "spade",
-                axis = { 0.0, 1.0, 0.0 },
+                axis = suit_and_link_vertical_plane_axis,
                 amplitude = 39 * degree,
                 speed = 1.55 * motion_speed_scale,
                 phase = 3.55,
-                link_axis = { 0.0, 1.0, 0.0 },
+                link_axis = suit_and_link_vertical_plane_axis,
                 link_amplitude = 22 * degree,
                 link_phase_lag = 0.58,
                 link_min_weight = 0.09,
@@ -189,11 +194,11 @@ return {
                 node = "chain_heart",
                 kind = "chain_sway",
                 terminal = "heart",
-                axis = { 0.0, 1.0, 0.0 },
+                axis = suit_and_link_vertical_plane_axis,
                 amplitude = 45 * degree,
                 speed = 1.35 * motion_speed_scale,
                 phase = 4.75,
-                link_axis = { 0.0, 1.0, 0.0 },
+                link_axis = suit_and_link_vertical_plane_axis,
                 link_amplitude = 27 * degree,
                 link_phase_lag = 0.76,
                 link_min_weight = 0.06,
@@ -203,11 +208,11 @@ return {
                 node = "chain_diamond",
                 kind = "chain_sway",
                 terminal = "diamond",
-                axis = { 0.0, 1.0, 0.0 },
+                axis = suit_and_link_vertical_plane_axis,
                 amplitude = 42 * degree,
                 speed = 1.65 * motion_speed_scale,
                 phase = 2.10,
-                link_axis = { 0.0, 1.0, 0.0 },
+                link_axis = suit_and_link_vertical_plane_axis,
                 link_amplitude = 23 * degree,
                 link_phase_lag = 0.64,
                 link_min_weight = 0.08,
@@ -219,11 +224,14 @@ return {
     scene = {
         clear_color = { 0.005, 0.008, 0.020, 1.0 },
         light = {
-            direction = { -0.30, -0.58, -0.76 },
+            -- The authored key ray runs from the upper-left, camera-facing
+            -- side into the cage. Directions are ray travel, while the shader
+            -- derives its lighting vector as -direction.
+            direction = { -0.30, 0.58, 0.76 },
             color = { 0.46, 0.57, 0.86, 1.0 },
             ambient = { 0.060, 0.085, 0.180, 1.0 },
             fill = {
-                direction = { 0.46, -0.32, 0.72 },
+                direction = { 0.46, 0.32, -0.72 },
                 color = { 0.16, 0.20, 0.40 },
                 strength = 0.18,
             },
