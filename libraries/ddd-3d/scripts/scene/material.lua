@@ -1,6 +1,37 @@
 local Material = {}
 Material.__index = Material
 
+local TEXTURE_FIELDS = {
+    base_color_texture = {
+        "base_color_texture",
+        "baseColorTexture",
+        "albedo_texture",
+        "albedoTexture",
+        "base_color_map",
+        "baseColorMap",
+        "albedo_map",
+        "albedoMap",
+        -- `texture` predates PBR maps and remains a base-color alias for
+        -- direct API consumers that already use it.
+        "texture",
+    },
+    normal_texture = {
+        "normal_texture",
+        "normalTexture",
+        "normal_map",
+        "normalMap",
+    },
+    roughness_texture = {
+        "roughness_texture",
+        "roughnessTexture",
+        "roughness_map",
+        "roughnessMap",
+    },
+}
+
+local NORMAL_STRENGTH_FIELDS = { "normal_strength", "normalStrength", "normal_scale", "normalScale" }
+local UV_SCALE_FIELDS = { "uv_scale", "uvScale" }
+
 local function clamped_number(value, fallback, minimum, maximum)
     value = tonumber(value)
     if value == nil or value ~= value or value == math.huge or value == -math.huge then
@@ -26,6 +57,44 @@ local function vec3(value, fallback)
         tonumber(value[2]) or 0,
         tonumber(value[3]) or 0,
     }
+end
+
+local function vec2(value, fallback)
+    value = value or fallback
+    return {
+        tonumber(value[1]) or fallback[1],
+        tonumber(value[2]) or fallback[2],
+    }
+end
+
+local function option_value(options, names)
+    for _, name in ipairs(names) do
+        if options[name] ~= nil then
+            return options[name]
+        end
+    end
+    return nil
+end
+
+local function texture_source(value, field)
+    if value == nil then
+        return nil
+    end
+    if type(value) == "string" then
+        if value == "" then
+            return nil, field .. " must not be an empty path"
+        end
+        return value
+    end
+    -- The direct API may pass a LÖVE Image or Canvas. Declarative runtime
+    -- definitions are stricter and only accept strings (see Runtime).
+    if type(value) == "userdata" then
+        return value
+    end
+    if type(value) == "table" and (type(value.typeOf) == "function" or type(value.getDimensions) == "function") then
+        return value
+    end
+    return nil, field .. " must be an image resource or a non-empty path"
 end
 
 local function send(shader, name, value, layout)
@@ -56,6 +125,27 @@ function Material.new(options)
     if alpha_mode ~= "OPAQUE" and alpha_mode ~= "MASK" and alpha_mode ~= "BLEND" then
         return nil, "unsupported material alpha mode: " .. tostring(alpha_mode)
     end
+    local uv_scale = option_value(options, UV_SCALE_FIELDS)
+    if uv_scale ~= nil and type(uv_scale) ~= "table" then
+        return nil, "uv_scale must be a vec2 table"
+    end
+    local base_color_texture, texture_err = texture_source(
+        option_value(options, TEXTURE_FIELDS.base_color_texture),
+        "base_color_texture"
+    )
+    if texture_err then return nil, texture_err end
+    local normal_texture
+    normal_texture, texture_err = texture_source(
+        option_value(options, TEXTURE_FIELDS.normal_texture),
+        "normal_texture"
+    )
+    if texture_err then return nil, texture_err end
+    local roughness_texture
+    roughness_texture, texture_err = texture_source(
+        option_value(options, TEXTURE_FIELDS.roughness_texture),
+        "roughness_texture"
+    )
+    if texture_err then return nil, texture_err end
     return setmetatable({
         name = options.name or "material",
         shader = options.shader or "lit",
@@ -75,10 +165,15 @@ function Material.new(options)
             0,
             1
         ),
+        normal_strength = clamped_number(option_value(options, NORMAL_STRENGTH_FIELDS), 1, 0, 4),
+        uv_scale = vec2(uv_scale, { 1, 1 }),
         alpha_mode = alpha_mode,
         alpha_cutoff = clamped_number(options.alpha_cutoff or options.alphaCutoff, 0.5, 0, 1),
         double_sided = options.double_sided == true or options.doubleSided == true,
-        texture = options.texture,
+        base_color_texture = base_color_texture,
+        texture = base_color_texture,
+        normal_texture = normal_texture,
+        roughness_texture = roughness_texture,
         released = false,
     }, Material)
 end
@@ -97,11 +192,91 @@ function Material:clone(overrides)
     if overrides.ambient_reflection == nil and overrides.ambientReflection == nil then
         overrides.ambient_reflection = self.ambient_reflection
     end
+    if option_value(overrides, NORMAL_STRENGTH_FIELDS) == nil then
+        overrides.normal_strength = self.normal_strength
+    end
+    if option_value(overrides, UV_SCALE_FIELDS) == nil then
+        overrides.uv_scale = self.uv_scale
+    end
     overrides.alpha_mode = overrides.alpha_mode or self.alpha_mode
     if overrides.alpha_cutoff == nil then overrides.alpha_cutoff = self.alpha_cutoff end
     if overrides.double_sided == nil then overrides.double_sided = self.double_sided end
-    overrides.texture = overrides.texture or self.texture
+    if option_value(overrides, TEXTURE_FIELDS.base_color_texture) == nil then
+        overrides.base_color_texture = self.base_color_texture
+    end
+    if option_value(overrides, TEXTURE_FIELDS.normal_texture) == nil then
+        overrides.normal_texture = self.normal_texture
+    end
+    if option_value(overrides, TEXTURE_FIELDS.roughness_texture) == nil then
+        overrides.roughness_texture = self.roughness_texture
+    end
     return Material.new(overrides)
+end
+
+--- Returns a copy with string texture paths resolved by `resolve`.
+--- This intentionally leaves direct Image/Canvas values untouched.
+---@param options table
+---@param resolve fun(path: string): string?
+---@return table? options
+---@return string? err
+function Material.resolveTexturePaths(options, resolve)
+    if type(options) ~= "table" then
+        return nil, "material options must be a table"
+    end
+    if type(resolve) ~= "function" then
+        return nil, "texture path resolver must be a function"
+    end
+    local resolved = {}
+    for key, value in pairs(options) do
+        resolved[key] = value
+    end
+    for canonical, names in pairs(TEXTURE_FIELDS) do
+        local source = option_value(options, names)
+        if type(source) == "string" then
+            local path, err = resolve(source)
+            if type(path) ~= "string" or path == "" then
+                return nil, err or (canonical .. " could not be resolved")
+            end
+            resolved[canonical] = path
+        elseif source ~= nil then
+            resolved[canonical] = source
+        end
+    end
+    return resolved
+end
+
+--- Validates material texture fields in a data-only runtime definition.
+---@param options table
+---@return boolean? ok
+---@return string? field
+---@return string? err
+function Material.validateTexturePaths(options)
+    if type(options) ~= "table" then
+        return nil, nil, "material options must be a table"
+    end
+    for _, names in pairs(TEXTURE_FIELDS) do
+        for _, name in ipairs(names) do
+            local value = options[name]
+            if value ~= nil and (type(value) ~= "string" or value == "") then
+                return nil, name, "must be a non-empty texture path"
+            end
+        end
+    end
+    for _, name in ipairs(NORMAL_STRENGTH_FIELDS) do
+        local value = options[name]
+        if value ~= nil and type(value) ~= "number" then
+            return nil, name, "must be a finite number"
+        end
+    end
+    for _, name in ipairs(UV_SCALE_FIELDS) do
+        local value = options[name]
+        if value ~= nil then
+            if type(value) ~= "table" or type(value[1]) ~= "number" or type(value[2]) ~= "number" then
+                return nil, name, "must be a vec2 table"
+            end
+        end
+    end
+    return true
 end
 
 function Material:apply(shader)
@@ -118,6 +293,8 @@ function Material:apply(shader)
         { "u_roughness", self.roughness },
         { "u_specular_strength", self.specular_strength },
         { "u_ambient_reflection", self.ambient_reflection },
+        { "u_normal_strength", self.normal_strength },
+        { "u_uv_scale", self.uv_scale },
         { "u_double_sided", self.double_sided and 1 or 0 },
         { "u_alpha_cutoff", self.alpha_cutoff },
         { "u_alpha_mask", self.alpha_mode == "MASK" and 1 or 0 },

@@ -113,10 +113,18 @@ local Runtime = libRequire("ddd-3d", "scripts.runtime")
 local material = assert(Material.new({
     specularStrength = 0,
     ambientReflection = 0,
+    normalStrength = 0.25,
+    uvScale = { 2, 3 },
+    normalMap = "normal.jpg",
+    roughnessTexture = "roughness.jpg",
 }))
 local clone = assert(material:clone())
 assert(clone.specular_strength == 0)
 assert(clone.ambient_reflection == 0)
+assert(clone.normal_strength == 0.25)
+assert(clone.uv_scale[1] == 2 and clone.uv_scale[2] == 3)
+assert(clone.normal_texture == "normal.jpg")
+assert(clone.roughness_texture == "roughness.jpg")
 
 local sent = {}
 local shader = {
@@ -130,6 +138,20 @@ local shader = {
 assert(material:apply(shader))
 assert(sent.u_specular_strength == 0)
 assert(sent.u_ambient_reflection == 0)
+assert(sent.u_normal_strength == 0.25)
+assert(sent.u_uv_scale[1] == 2 and sent.u_uv_scale[2] == 3)
+
+local resolved = assert(Material.resolveTexturePaths({
+    normalMap = "normal.jpg",
+    roughnessTexture = "roughness.jpg",
+}, function(path)
+    return "/fixture-assets/" .. path
+end))
+assert(resolved.normal_texture == "/fixture-assets/normal.jpg")
+assert(resolved.roughness_texture == "/fixture-assets/roughness.jpg")
+local invalid_texture, invalid_field, invalid_texture_err = Material.validateTexturePaths({ normalMap = false })
+assert(not invalid_texture and invalid_field == "normalMap")
+assert(invalid_texture_err:find("texture path", 1, true))
 
 local inline_model = assert(GLBLoader.loadData(glb, {
     material_overrides = {
@@ -140,6 +162,10 @@ local inline_model = assert(GLBLoader.loadData(glb, {
             doubleSided = true,
             specularStrength = 0.35,
             ambientReflection = 0.60,
+            normalStrength = 0.20,
+            uvScale = { 2, 3 },
+            normalMap = "normal.jpg",
+            roughnessTexture = "roughness.jpg",
         },
         suit_fill_black = {
             base_color = { 0.01, 0.01, 0.02, 1 },
@@ -158,6 +184,10 @@ assert(outline.alpha_cutoff == 0.25)
 assert(outline.double_sided == true)
 assert(outline.specular_strength == 0.35)
 assert(outline.ambient_reflection == 0.60)
+assert(outline.normal_strength == 0.20)
+assert(outline.uv_scale[1] == 2 and outline.uv_scale[2] == 3)
+assert(outline.normal_texture == "normal.jpg")
+assert(outline.roughness_texture == "roughness.jpg")
 assert(fill.specular_strength == 0)
 assert(fill.ambient_reflection == 0)
 assert(inline_model:release())
@@ -180,6 +210,10 @@ local function definition()
                 doubleSided = true,
                 specularStrength = 0.35,
                 ambientReflection = 0.60,
+                normalStrength = 0.20,
+                uvScale = { 2, 3 },
+                normalMap = "textures/normal.jpg",
+                roughnessTexture = "textures/roughness.jpg",
             },
             black_fill = {
                 base_color = { 0.01, 0.01, 0.02, 1 },
@@ -205,16 +239,29 @@ local function definition()
                 target_anchor = "anchor_camera_target",
             },
         },
+        scene = {
+            light = {
+                fill = {
+                    direction = { 0.4, -0.3, 0.7 },
+                    color = { 0.2, 0.1, 0.5 },
+                    strength = 0.15,
+                },
+            },
+        },
     }
 end
 
 assert(Runtime.validateDefinition(definition()))
-local runtime = assert(Runtime.new(definition()))
+local runtime = assert(Runtime.new(definition(), { asset_root = "/fixture-assets" }))
 local runtime_outline = runtime.models.authored_scene.materials[1]
 local runtime_fill = runtime.models.authored_scene.materials[2]
 assert(runtime_outline.name == "purple_outline")
 assert(runtime_outline.specular_strength == 0.35)
 assert(runtime_outline.ambient_reflection == 0.60)
+assert(runtime_outline.normal_strength == 0.20)
+assert(runtime_outline.uv_scale[1] == 2 and runtime_outline.uv_scale[2] == 3)
+assert(runtime_outline.normal_texture == "/fixture-assets/textures/normal.jpg")
+assert(runtime_outline.roughness_texture == "/fixture-assets/textures/roughness.jpg")
 assert(runtime_fill.name == "black_fill")
 assert(runtime_fill.specular_strength == 0)
 assert(runtime_fill.ambient_reflection == 0)
@@ -224,5 +271,15 @@ local missing = definition()
 missing.authored_scene.material_overrides.missing_material = "purple_outline"
 local missing_runtime, missing_err = Runtime.new(missing)
 assert(not missing_runtime and missing_err:find("has no material", 1, true))
+
+local invalid_strength = definition()
+invalid_strength.materials.purple_outline.normalStrength = math.huge
+local valid_strength, strength_err = Runtime.validateDefinition(invalid_strength)
+assert(not valid_strength and strength_err:find("normalStrength", 1, true))
+
+local invalid_fill = definition()
+invalid_fill.scene.light.fill.strength = 0 / 0
+local valid_fill, fill_err = Runtime.validateDefinition(invalid_fill)
+assert(not valid_fill and fill_err:find("scene.light.fill.strength", 1, true))
 
 print("ddd-3d material contract: PASS")

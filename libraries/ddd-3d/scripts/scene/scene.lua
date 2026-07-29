@@ -27,6 +27,14 @@ local function copy_vec3(value, fallback)
     }
 end
 
+local function non_negative_number(value, fallback)
+    value = tonumber(value)
+    if value == nil or value ~= value or value == math.huge or value == -math.huge then
+        return fallback
+    end
+    return math.max(0, value)
+end
+
 local function apply_node_options(node, options)
     if options.position then node:setPosition(options.position) end
     if options.rotation then node:setRotation(options.rotation) end
@@ -75,6 +83,20 @@ function Scene.new(options)
             direction = Math3D.normalize3((options.light and options.light.direction) or { -0.35, -0.7, -0.55 }, { 0, -1, 0 }),
             color = copy_vec3(options.light and options.light.color, { 1, 1, 1 }),
             ambient = copy_vec3(options.light and options.light.ambient, { 0.16, 0.19, 0.26 }),
+            fill = {
+                direction = Math3D.normalize3(
+                    (options.light and options.light.fill and options.light.fill.direction) or { 0.45, -0.35, 0.65 },
+                    { 0, -1, 0 }
+                ),
+                color = copy_vec3(
+                    options.light and options.light.fill and options.light.fill.color,
+                    { 1, 1, 1 }
+                ),
+                strength = non_negative_number(
+                    options.light and options.light.fill and options.light.fill.strength,
+                    0
+                ),
+            },
         },
         released = false,
     }, Scene)
@@ -109,6 +131,20 @@ function Scene:setLight(light)
     end
     if light.ambient then
         self.light.ambient = copy_vec3(light.ambient, self.light.ambient)
+    end
+    if light.fill then
+        if type(light.fill) ~= "table" then
+            return nil, "scene fill light settings must be a table"
+        end
+        if light.fill.direction then
+            self.light.fill.direction = Math3D.normalize3(light.fill.direction, { 0, -1, 0 })
+        end
+        if light.fill.color then
+            self.light.fill.color = copy_vec3(light.fill.color, self.light.fill.color)
+        end
+        if light.fill.strength ~= nil then
+            self.light.fill.strength = non_negative_number(light.fill.strength, self.light.fill.strength)
+        end
     end
     return self
 end

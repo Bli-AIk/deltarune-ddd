@@ -16,7 +16,8 @@ assert(DDD3D.draw(scene))
 ```
 
 `loadGLB` supports Blender-exported `TRIANGLES` primitives with `POSITION`,
-`NORMAL`, `TEXCOORD_0`, optional indices, glTF materials, and node transforms.
+`NORMAL`, `TEXCOORD_0`, optional `TANGENT`, optional indices, glTF materials,
+and node transforms.
 `Model:instantiate({ node = "name" })` and `spawn(..., { node = "name" })`
 clone just that named source subtree while sharing GPU mesh data.
 
@@ -83,6 +84,47 @@ The runtime checks that every authored source material exists exactly once in
 the GLB before spawning the authored scene. Double-sided materials keep their
 normal back-face behavior; `ambient_reflection` supplies the restrained
 directional reflection used to keep cage interiors and chain links readable.
+
+`lit` additionally accepts optional texture paths:
+
+```lua
+materials = {
+    aged_metal = {
+        shader = "lit",
+        normal_texture = "textures/metal_nor_gl.jpg",
+        roughness_texture = "textures/metal_rough.jpg",
+        normal_strength = 0.22,
+        uv_scale = { 1.0, 1.0 },
+    },
+}
+```
+
+`base_color_texture` (aliases: `baseColorTexture`, `albedo_texture`, and
+`texture`), `normal_texture` / `normalMap`, and `roughness_texture` /
+`roughnessMap` are supported. The runtime resolves relative texture paths
+against `context.asset_root`; absolute paths are loaded through LÖVE FileData
+so Kristal mod asset roots work without changing the virtual filesystem.
+Missing GLB tangents are generated from positions, normals, and UVs; Blender
+exports should still include `TANGENT` when a normal map is authored.
+
+Scenes may define a low-intensity fill directional light independently of the
+key light. This is useful for an interior such as a cage, where a second
+reflection should reveal the far side without making every back face bright:
+
+```lua
+scene = {
+    light = {
+        direction = { -0.3, -0.7, -0.5 },
+        color = { 0.8, 0.6, 1.0 },
+        ambient = { 0.16, 0.08, 0.28 },
+        fill = {
+            direction = { 0.4, -0.3, 0.7 },
+            color = { 0.3, 0.15, 0.6 },
+            strength = 0.16,
+        },
+    },
+}
+```
 
 ## World Camera Rig
 

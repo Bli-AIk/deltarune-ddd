@@ -24,6 +24,11 @@ blender --background assets/3d/kingbattle/kingbattle_layout.blend \
   --python tools/apply_kingbattle_layout_style.py
 ```
 
+`kingbattle/textures/` contains the shared PBR maps used by the cage and
+chains. The style migration reconnects those maps in Blender, while
+`scripts/scenes/kingbattle_3d.lua` selects the matching runtime normal and
+roughness maps. Static transforms stay in Blender in both cases.
+
 The material contract is deliberately small:
 
 | Material | Authored role |

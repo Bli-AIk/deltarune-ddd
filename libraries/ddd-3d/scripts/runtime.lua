@@ -139,12 +139,22 @@ local function validate_material_spec(material, path)
         "specularStrength",
         "ambient_reflection",
         "ambientReflection",
+        "normal_strength",
+        "normalStrength",
+        "normal_scale",
+        "normalScale",
         "alpha_cutoff",
         "alphaCutoff",
     }) do
         if material[field] ~= nil and not finite(material[field]) then
             return path_error(path .. "." .. field, "must be a finite number")
         end
+    end
+    valid, err = validate_vector(material.uv_scale or material.uvScale, 2, path .. ".uv_scale", true)
+    if not valid then return nil, err end
+    local texture_valid, texture_field, texture_err = Material.validateTexturePaths(material)
+    if not texture_valid then
+        return path_error(path .. "." .. tostring(texture_field), texture_err)
     end
     return true
 end
@@ -525,6 +535,28 @@ function Runtime.validateDefinition(definition)
             if not valid then return nil, err end
             valid, err = validate_vector(definition.scene.light.ambient, 3, "scene.light.ambient", true)
             if not valid then return nil, err end
+            if definition.scene.light.fill ~= nil then
+                if type(definition.scene.light.fill) ~= "table" then
+                    return nil, "scene.light.fill must be a table"
+                end
+                valid, err = validate_vector(
+                    definition.scene.light.fill.direction,
+                    3,
+                    "scene.light.fill.direction",
+                    true
+                )
+                if not valid then return nil, err end
+                valid, err = validate_vector(
+                    definition.scene.light.fill.color,
+                    3,
+                    "scene.light.fill.color",
+                    true
+                )
+                if not valid then return nil, err end
+                if definition.scene.light.fill.strength ~= nil and not finite(definition.scene.light.fill.strength) then
+                    return nil, "scene.light.fill.strength must be a finite number"
+                end
+            end
         end
         if definition.scene.camera then
             valid, err = validate_vector(definition.scene.camera.position, 3, "scene.camera.position", true)
@@ -637,9 +669,14 @@ local function copy_material_data(material)
         roughness = material.roughness,
         specular_strength = material.specular_strength,
         ambient_reflection = material.ambient_reflection,
+        normal_strength = material.normal_strength,
+        uv_scale = material.uv_scale,
         alpha_mode = material.alpha_mode,
         alpha_cutoff = material.alpha_cutoff,
         double_sided = material.double_sided,
+        base_color_texture = material.base_color_texture,
+        normal_texture = material.normal_texture,
+        roughness_texture = material.roughness_texture,
     }
 end
 
@@ -651,6 +688,12 @@ local function resolve_path(path, root)
         return root .. path
     end
     return root .. "/" .. path
+end
+
+local function resolve_material_paths(material, root)
+    return Material.resolveTexturePaths(material, function(path)
+        return resolve_path(path, root)
+    end)
 end
 
 local function ordered_keys(table_value)
@@ -673,7 +716,11 @@ local function instance_material(runtime, specification)
     if type(specification) == "string" then
         return runtime.materials[specification]
     end
-    local material, err = Material.new(specification)
+    local options, resolve_err = resolve_material_paths(specification, runtime.context.asset_root)
+    if not options then
+        return nil, resolve_err
+    end
+    local material, err = Material.new(options)
     if not material then
         return nil, err
     end
@@ -681,7 +728,7 @@ local function instance_material(runtime, specification)
     return material
 end
 
-local function compile_asset_overrides(asset, materials)
+local function compile_asset_overrides(asset, materials, asset_root)
     if not asset.material_overrides then
         return nil
     end
@@ -690,7 +737,11 @@ local function compile_asset_overrides(asset, materials)
         if type(override) == "string" then
             overrides[source_name] = copy_material_data(materials[override])
         else
-            overrides[source_name] = override
+            local resolved, resolve_err = resolve_material_paths(override, asset_root)
+            if not resolved then
+                return nil, resolve_err
+            end
+            overrides[source_name] = resolved
         end
     end
     return overrides
@@ -922,7 +973,11 @@ function Runtime.new(definition, context)
     for _, material_id in ipairs(ordered_keys(definition.materials)) do
         local material_specification = deep_copy(definition.materials[material_id])
         material_specification.name = material_specification.name or material_id
-        local material, material_err = Material.new(material_specification)
+        local material_options, texture_err = resolve_material_paths(material_specification, runtime_context.asset_root)
+        if not material_options then
+            return abort("material " .. material_id .. ": " .. tostring(texture_err))
+        end
+        local material, material_err = Material.new(material_options)
         if not material then
             return abort("material " .. material_id .. ": " .. tostring(material_err))
         end
@@ -930,13 +985,17 @@ function Runtime.new(definition, context)
         runtime.owned_materials[#runtime.owned_materials + 1] = material
     end
     if authored_specification then
+        local authored_overrides, authored_overrides_err = compile_asset_overrides({
+            material_overrides = authored_specification.material_overrides,
+        }, runtime.materials, runtime_context.asset_root)
+        if authored_overrides_err then
+            return abort("authored_scene: " .. tostring(authored_overrides_err))
+        end
         local model, model_err = GLBLoader.load(
             resolve_path(authored_specification.path, runtime_context.asset_root),
             {
                 source = authored_specification.path,
-                material_overrides = compile_asset_overrides({
-                    material_overrides = authored_specification.material_overrides,
-                }, runtime.materials),
+                material_overrides = authored_overrides,
             }
         )
         if not model then
@@ -968,10 +1027,18 @@ function Runtime.new(definition, context)
     else
         for _, asset_id in ipairs(ordered_keys(definition.assets)) do
             local asset = definition.assets[asset_id]
+            local material_overrides, overrides_err = compile_asset_overrides(
+                asset,
+                runtime.materials,
+                runtime_context.asset_root
+            )
+            if overrides_err then
+                return abort("asset " .. asset_id .. ": " .. tostring(overrides_err))
+            end
             local model, model_err = GLBLoader.load(resolve_path(asset.path, runtime_context.asset_root), {
                 source = asset.path,
                 mesh_usage = asset.mesh_usage,
-                material_overrides = compile_asset_overrides(asset, runtime.materials),
+                material_overrides = material_overrides,
             })
             if not model then
                 return abort("asset " .. asset_id .. ": " .. tostring(model_err))

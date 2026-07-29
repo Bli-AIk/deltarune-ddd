@@ -57,6 +57,44 @@ local function release_if_possible(resource)
     end
 end
 
+local function configure_texture(texture)
+    if texture and texture.setFilter then
+        pcall(texture.setFilter, texture, "linear", "linear")
+    end
+    if texture and texture.setMipmapFilter then
+        pcall(texture.setMipmapFilter, texture, "linear", 0)
+    end
+    if texture and texture.setWrap then
+        pcall(texture.setWrap, texture, "repeat", "repeat")
+    end
+    return texture
+end
+
+local function is_absolute_path(path)
+    return path:sub(1, 1) == "/" or path:match("^%a:[/\\]") ~= nil
+end
+
+local function file_data_for_path(path)
+    if not is_absolute_path(path) then
+        return path
+    end
+    if not love.filesystem or not love.filesystem.newFileData then
+        return nil, "LÖVE FileData support is unavailable"
+    end
+    -- LÖVE's image loader reads virtual paths only. Runtime asset roots are
+    -- deliberately allowed to be absolute so Kristal can point at a mod's
+    -- authored 3D directory; bridge those files through FileData instead.
+    local contents = read_text(path)
+    if not contents then
+        return nil, "could not read texture file " .. path
+    end
+    local ok, file_data = pcall(love.filesystem.newFileData, contents, path)
+    if not ok then
+        return nil, "could not create texture FileData for " .. path .. ": " .. tostring(file_data)
+    end
+    return file_data
+end
+
 local function send(shader, name, value, is_matrix)
     if shader.hasUniform then
         local checked, has_uniform = pcall(shader.hasUniform, shader, name)
@@ -123,6 +161,8 @@ function Renderer.new(options)
         color_format = options.color_format,
         depth_format = options.depth_format,
         msaa = options.msaa,
+        texture_cache = {},
+        fallback_textures = nil,
         released = false,
     }, Renderer)
 end
@@ -194,6 +234,144 @@ function Renderer:_ensureTargets(width, height, options)
     return true
 end
 
+local function texture_cache_key(path, semantic)
+    return semantic .. "\0" .. path
+end
+
+function Renderer:_loadTexture(path, semantic)
+    if type(path) ~= "string" or path == "" then
+        return nil, "texture path must be a non-empty string"
+    end
+    local key = texture_cache_key(path, semantic)
+    local cached = self.texture_cache[key]
+    if cached then
+        if cached.error then
+            return nil, cached.error
+        end
+        return cached.texture
+    end
+    if not graphics_ready() then
+        local err = "love.graphics is not active"
+        self.texture_cache[key] = { error = err }
+        return nil, err
+    end
+    local settings = {
+        -- LÖVE treats base-color maps as sRGB while normal and roughness maps
+        -- must retain their raw linear data under gamma-correct rendering.
+        linear = semantic ~= "base_color",
+        mipmaps = true,
+    }
+    local source, source_err = file_data_for_path(path)
+    if not source then
+        local err = "could not load " .. semantic .. " texture " .. path .. ": " .. tostring(source_err)
+        self.texture_cache[key] = { error = err }
+        return nil, err
+    end
+    local ok, texture = pcall(love.graphics.newImage, source, settings)
+    if not ok then
+        local err = "could not load " .. semantic .. " texture " .. path .. ": " .. tostring(texture)
+        self.texture_cache[key] = { error = err }
+        return nil, err
+    end
+    self.texture_cache[key] = { texture = configure_texture(texture) }
+    return self.texture_cache[key].texture
+end
+
+function Renderer:_ensureFallbackTextures()
+    if self.fallback_textures then
+        return self.fallback_textures
+    end
+    if not graphics_ready() or not love.image or not love.image.newImageData then
+        return nil, "LÖVE ImageData support is unavailable"
+    end
+    local function solid_color(color, linear)
+        local data = love.image.newImageData(1, 1)
+        data:setPixel(0, 0, color[1], color[2], color[3], color[4])
+        local ok, texture = pcall(love.graphics.newImage, data, {
+            linear = linear,
+            mipmaps = false,
+        })
+        if not ok then
+            return nil, tostring(texture)
+        end
+        return configure_texture(texture)
+    end
+    local base_color, base_err = solid_color({ 1, 1, 1, 1 }, false)
+    if not base_color then
+        return nil, "could not create base-color fallback texture: " .. tostring(base_err)
+    end
+    local normal, normal_err = solid_color({ 0.5, 0.5, 1, 1 }, true)
+    if not normal then
+        release_if_possible(base_color)
+        return nil, "could not create normal fallback texture: " .. tostring(normal_err)
+    end
+    local roughness, roughness_err = solid_color({ 1, 1, 1, 1 }, true)
+    if not roughness then
+        release_if_possible(base_color)
+        release_if_possible(normal)
+        return nil, "could not create roughness fallback texture: " .. tostring(roughness_err)
+    end
+    self.fallback_textures = {
+        base_color = base_color,
+        normal = normal,
+        roughness = roughness,
+    }
+    return self.fallback_textures
+end
+
+function Renderer:_textureFor(source, semantic)
+    if source == nil then
+        return nil
+    end
+    if type(source) == "string" then
+        return self:_loadTexture(source, semantic)
+    end
+    return source
+end
+
+function Renderer:_bindMaterialTextures(material, shader)
+    if material.shader ~= "lit" then
+        return true
+    end
+    local has_base_color = material.base_color_texture ~= nil
+    local has_normal = material.normal_texture ~= nil
+    local has_roughness = material.roughness_texture ~= nil
+    local flags = {
+        { "u_has_base_color_texture", has_base_color and 1 or 0 },
+        { "u_has_normal_texture", has_normal and 1 or 0 },
+        { "u_has_roughness_texture", has_roughness and 1 or 0 },
+    }
+    for _, uniform in ipairs(flags) do
+        local ok, err = send(shader, uniform[1], uniform[2])
+        if not ok then return nil, err end
+    end
+    if not has_base_color and not has_normal and not has_roughness then
+        return true
+    end
+
+    local fallback, fallback_err = self:_ensureFallbackTextures()
+    if not fallback then return nil, fallback_err end
+    local base_color, base_err = self:_textureFor(material.base_color_texture, "base_color")
+    if not base_color then base_color = fallback.base_color end
+    if base_err then return nil, base_err end
+    local normal, normal_err = self:_textureFor(material.normal_texture, "normal")
+    if not normal then normal = fallback.normal end
+    if normal_err then return nil, normal_err end
+    local roughness, roughness_err = self:_textureFor(material.roughness_texture, "roughness")
+    if not roughness then roughness = fallback.roughness end
+    if roughness_err then return nil, roughness_err end
+
+    for _, uniform in ipairs({
+        { "u_base_color_texture", base_color },
+        { "u_normal_texture", normal },
+        { "u_roughness_texture", roughness },
+    }) do
+        local ok, err = send(shader, uniform[1], uniform[2])
+        if not ok then return nil, err end
+    end
+    return true
+end
+
 function Renderer:_drawRenderable(entry, scene, view_projection)
     local material = entry.material
     if material.released then
@@ -215,6 +393,9 @@ function Renderer:_drawRenderable(entry, scene, view_projection)
         { "u_light_direction", scene.light.direction },
         { "u_light_color", scene.light.color },
         { "u_ambient_color", scene.light.ambient },
+        { "u_fill_light_direction", scene.light.fill.direction },
+        { "u_fill_light_color", scene.light.fill.color },
+        { "u_fill_light_strength", scene.light.fill.strength },
     }
     for _, uniform in ipairs(uniforms) do
         local ok, err = send(shader, uniform[1], uniform[2], uniform[3])
@@ -225,6 +406,10 @@ function Renderer:_drawRenderable(entry, scene, view_projection)
     local material_ok, material_err = material:apply(shader)
     if not material_ok then
         return nil, material_err
+    end
+    local texture_ok, texture_err = self:_bindMaterialTextures(material, shader)
+    if not texture_ok then
+        return nil, texture_err
     end
     love.graphics.draw(entry.mesh.handle)
     return true
@@ -387,6 +572,16 @@ function Renderer:release()
         end
     end
     self.shaders = nil
+    for _, cached in pairs(self.texture_cache or {}) do
+        release_if_possible(cached.texture)
+    end
+    self.texture_cache = {}
+    if self.fallback_textures then
+        for _, texture in pairs(self.fallback_textures) do
+            release_if_possible(texture)
+        end
+    end
+    self.fallback_textures = nil
     self.released = true
     return true
 end

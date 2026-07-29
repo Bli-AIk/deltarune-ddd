@@ -226,6 +226,15 @@ local function override_option(override, snake_case, camel_case)
     return override[camel_case]
 end
 
+local function override_texture_option(override, names)
+    for _, name in ipairs(names) do
+        if override[name] ~= nil then
+            return override[name]
+        end
+    end
+    return nil
+end
+
 local function build_materials(document, options)
     local materials = {}
     local source_materials = document.materials or {}
@@ -246,6 +255,20 @@ local function build_materials(document, options)
             roughness = override.roughness == nil and (pbr.roughnessFactor or 1) or override.roughness,
             specular_strength = override_option(override, "specular_strength", "specularStrength"),
             ambient_reflection = override_option(override, "ambient_reflection", "ambientReflection"),
+            normal_strength = override_texture_option(override, {
+                "normal_strength", "normalStrength", "normal_scale", "normalScale",
+            }),
+            uv_scale = override_option(override, "uv_scale", "uvScale"),
+            base_color_texture = override_texture_option(override, {
+                "base_color_texture", "baseColorTexture", "albedo_texture", "albedoTexture",
+                "base_color_map", "baseColorMap", "albedo_map", "albedoMap", "texture",
+            }),
+            normal_texture = override_texture_option(override, {
+                "normal_texture", "normalTexture", "normal_map", "normalMap",
+            }),
+            roughness_texture = override_texture_option(override, {
+                "roughness_texture", "roughnessTexture", "roughness_map", "roughnessMap",
+            }),
             alpha_mode = alpha_mode or source.alphaMode or "OPAQUE",
             alpha_cutoff = alpha_cutoff or source.alphaCutoff,
             double_sided = double_sided == nil and source.doubleSided or double_sided,
@@ -329,7 +352,15 @@ local function build_meshes(document, binary, materials, fallback_material, opti
                     texcoords[index] = { 0, 0 }
                 end
             end
-            if #normals ~= #positions or #texcoords ~= #positions then
+            local tangents
+            if attributes.TANGENT ~= nil then
+                tangents, position_err = decode_accessor(document, binary, attributes.TANGENT)
+                if not tangents then
+                    release_resources(all_meshes)
+                    return nil, position_err
+                end
+            end
+            if #normals ~= #positions or #texcoords ~= #positions or (tangents and #tangents ~= #positions) then
                 release_resources(all_meshes)
                 return nil, "mesh " .. tostring(mesh_index - 1) .. " has mismatched vertex attributes"
             end
@@ -341,15 +372,24 @@ local function build_meshes(document, binary, materials, fallback_material, opti
             for index, position in ipairs(positions) do
                 local normal = normals[index]
                 local texcoord = texcoords[index]
-                if #position ~= 3 or #normal ~= 3 or #texcoord < 2 then
+                local tangent = tangents and tangents[index]
+                if #position ~= 3
+                    or #normal ~= 3
+                    or #texcoord < 2
+                    or (tangent and #tangent ~= 4)
+                then
                     release_resources(all_meshes)
                     return nil, "mesh " .. tostring(mesh_index - 1) .. " has an invalid vertex attribute type"
                 end
-                vertices[index] = {
+                local vertex = {
                     position[1], position[2], position[3],
                     normal[1], normal[2], normal[3],
                     texcoord[1], texcoord[2],
                 }
+                if tangent then
+                    vertex[9], vertex[10], vertex[11], vertex[12] = tangent[1], tangent[2], tangent[3], tangent[4]
+                end
+                vertices[index] = vertex
             end
             local material = primitive.material ~= nil and materials[primitive.material + 1] or fallback_material
             if not material then

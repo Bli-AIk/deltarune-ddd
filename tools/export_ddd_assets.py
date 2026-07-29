@@ -307,6 +307,7 @@ def export_glb(output_path: Path, objects: list[bpy.types.Object]) -> None:
         use_selection=True,
         export_texcoords=True,
         export_normals=True,
+        export_tangents=True,
         export_materials="EXPORT",
         export_cameras=False,
         export_lights=False,

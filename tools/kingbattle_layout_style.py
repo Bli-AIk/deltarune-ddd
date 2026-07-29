@@ -8,6 +8,7 @@ including all pendant, cage, and camera transforms, remains in the editable
 from __future__ import annotations
 
 import math
+from pathlib import Path
 
 import bmesh
 import bpy
@@ -15,7 +16,7 @@ from mathutils import Vector
 
 
 SUITS = ("club", "spade", "heart", "diamond")
-STYLE_VERSION = 2
+STYLE_VERSION = 3
 
 EDGE_MATERIAL = "suit_edge"
 FILL_MATERIAL = "suit_fill"
@@ -27,6 +28,18 @@ FEATURE_EDGE_COSINE = math.cos(math.radians(32.0))
 EDGE_RADIUS_FACTOR = 0.009
 EDGE_MIN_RADIUS = 0.008
 EDGE_SEGMENTS = 6
+
+# Cage and chain use the same restrained CC0 PBR set. The runtime shader uses
+# these maps too; keeping the Blender node graph here makes the authored
+# layout a faithful source of truth for artists inspecting the scene.
+METAL_TEXTURE_SET = "blue_metal_plate"
+METAL_TEXTURE_FILES = {
+    "albedo": "blue_metal_plate_diff_1k.jpg",
+    "normal": "blue_metal_plate_nor_gl_1k.jpg",
+    "roughness": "blue_metal_plate_rough_1k.jpg",
+}
+METAL_UV_SCALE = (1.0, 1.0, 1.0)
+METAL_NORMAL_STRENGTH = 0.22
 
 MATERIALS = {
     "cage_metal": {
@@ -59,6 +72,117 @@ def _require_object(name: str) -> bpy.types.Object:
     return object_
 
 
+def _texture_path(filename: str) -> Path:
+    if not bpy.data.filepath:
+        raise RuntimeError("King Battle texture paths require a saved Blender layout.")
+    path = Path(bpy.data.filepath).resolve().parent / "textures" / filename
+    if not path.is_file():
+        raise RuntimeError(f"Required King Battle texture is missing: {path}")
+    return path
+
+
+def _load_texture(filename: str, color_space: str) -> bpy.types.Image:
+    path = _texture_path(filename)
+    image = bpy.data.images.get(filename)
+    if image is None:
+        image = bpy.data.images.load(str(path), check_existing=True)
+        image.name = filename
+    image.filepath = bpy.path.relpath(str(path))
+    try:
+        image.colorspace_settings.name = color_space
+    except TypeError as error:
+        raise RuntimeError(
+            f"Could not assign {color_space!r} color space to '{filename}': {error}"
+        ) from error
+    return image
+
+
+def _configure_metal_texture_nodes(
+    material: bpy.types.Material,
+    specification: dict[str, object],
+) -> None:
+    """Create the idempotent Blender counterpart of the runtime PBR material."""
+
+    tree = material.node_tree
+    if tree is None:
+        raise RuntimeError(f"'{material.name}' has no node tree.")
+    nodes = tree.nodes
+    links = tree.links
+    nodes.clear()
+
+    output = nodes.new("ShaderNodeOutputMaterial")
+    output.name = "DDD Metal Output"
+    output.location = (720, 0)
+    principled = nodes.new("ShaderNodeBsdfPrincipled")
+    principled.name = "DDD Metal Principled"
+    principled.location = (460, 0)
+    principled.inputs["Metallic"].default_value = specification["metallic"]
+
+    coordinate = nodes.new("ShaderNodeTexCoord")
+    coordinate.name = "DDD Metal Coordinates"
+    coordinate.location = (-920, 0)
+    mapping = nodes.new("ShaderNodeMapping")
+    mapping.name = "DDD Metal UV Scale"
+    mapping.location = (-740, 0)
+    mapping.inputs["Scale"].default_value = METAL_UV_SCALE
+    links.new(coordinate.outputs["UV"], mapping.inputs["Vector"])
+
+    albedo = nodes.new("ShaderNodeTexImage")
+    albedo.name = "DDD Metal Albedo"
+    albedo.label = "Blue Metal Plate Albedo"
+    albedo.image = _load_texture(METAL_TEXTURE_FILES["albedo"], "sRGB")
+    albedo.location = (-520, 170)
+    links.new(mapping.outputs["Vector"], albedo.inputs["Vector"])
+
+    tint = nodes.new("ShaderNodeRGB")
+    tint.name = "DDD Metal Purple Tint"
+    tint.label = "Scene Purple Tint"
+    tint.location = (-520, 55)
+    tint.outputs["Color"].default_value = specification["color"]
+    color_mix = nodes.new("ShaderNodeMixRGB")
+    color_mix.name = "DDD Metal Albedo Tint"
+    color_mix.blend_type = "MULTIPLY"
+    color_mix.inputs["Fac"].default_value = 0.42
+    color_mix.location = (-110, 130)
+    links.new(tint.outputs["Color"], color_mix.inputs[1])
+    links.new(albedo.outputs["Color"], color_mix.inputs[2])
+    links.new(color_mix.outputs["Color"], principled.inputs["Base Color"])
+
+    normal_texture = nodes.new("ShaderNodeTexImage")
+    normal_texture.name = "DDD Metal Normal Texture"
+    normal_texture.label = "Blue Metal Plate Normal (OpenGL)"
+    normal_texture.image = _load_texture(METAL_TEXTURE_FILES["normal"], "Non-Color")
+    normal_texture.location = (-520, -120)
+    links.new(mapping.outputs["Vector"], normal_texture.inputs["Vector"])
+    normal_map = nodes.new("ShaderNodeNormalMap")
+    normal_map.name = "DDD Metal Normal"
+    normal_map.location = (-110, -120)
+    normal_map.inputs["Strength"].default_value = METAL_NORMAL_STRENGTH
+    links.new(normal_texture.outputs["Color"], normal_map.inputs["Color"])
+    links.new(normal_map.outputs["Normal"], principled.inputs["Normal"])
+
+    roughness_texture = nodes.new("ShaderNodeTexImage")
+    roughness_texture.name = "DDD Metal Roughness Texture"
+    roughness_texture.label = "Blue Metal Plate Roughness"
+    roughness_texture.image = _load_texture(METAL_TEXTURE_FILES["roughness"], "Non-Color")
+    roughness_texture.location = (-520, -390)
+    links.new(mapping.outputs["Vector"], roughness_texture.inputs["Vector"])
+    roughness_range = nodes.new("ShaderNodeMapRange")
+    roughness_range.name = "DDD Metal Roughness Range"
+    roughness_range.location = (-110, -360)
+    roughness_range.inputs["From Min"].default_value = 0.0
+    roughness_range.inputs["From Max"].default_value = 1.0
+    roughness_range.inputs["To Min"].default_value = 0.20
+    roughness_range.inputs["To Max"].default_value = 0.52
+    links.new(roughness_texture.outputs["Color"], roughness_range.inputs["Value"])
+    links.new(roughness_range.outputs["Result"], principled.inputs["Roughness"])
+
+    links.new(principled.outputs["BSDF"], output.inputs["Surface"])
+    material["ddd_pbr_texture_set"] = METAL_TEXTURE_SET
+    material["ddd_normal_strength"] = METAL_NORMAL_STRENGTH
+    material["ddd_uv_scale"] = METAL_UV_SCALE[:2]
+
+
 def ensure_material(name: str) -> bpy.types.Material:
     specification = MATERIALS[name]
     material = bpy.data.materials.get(name)
@@ -71,6 +195,8 @@ def ensure_material(name: str) -> bpy.types.Material:
         principled.inputs["Base Color"].default_value = specification["color"]
         principled.inputs["Metallic"].default_value = specification["metallic"]
         principled.inputs["Roughness"].default_value = specification["roughness"]
+    if name in {"cage_metal", "chain_metal"}:
+        _configure_metal_texture_nodes(material, specification)
     return material
 
 

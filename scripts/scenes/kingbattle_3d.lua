@@ -1,5 +1,12 @@
 -- Blender-first preset consumed by libraries/ddd-3d.
 -- Static transforms, hierarchy, and camera anchors live in kingbattle_scene.glb.
+local metal_surface = {
+    normal = "textures/blue_metal_plate_nor_gl_1k.jpg",
+    roughness = "textures/blue_metal_plate_rough_1k.jpg",
+    normal_strength = 0.22,
+    uv_scale = { 1.0, 1.0 },
+}
+
 return {
     version = 2,
 
@@ -11,6 +18,10 @@ return {
             emissive = { 0.028, 0.008, 0.105 },
             metallic = 0.62,
             roughness = 0.28,
+            normal_texture = metal_surface.normal,
+            roughness_texture = metal_surface.roughness,
+            normal_strength = metal_surface.normal_strength,
+            uv_scale = metal_surface.uv_scale,
             double_sided = true,
         },
         chain_metal = {
@@ -20,6 +31,10 @@ return {
             emissive = { 0.065, 0.018, 0.210 },
             metallic = 0.72,
             roughness = 0.20,
+            normal_texture = metal_surface.normal,
+            roughness_texture = metal_surface.roughness,
+            normal_strength = metal_surface.normal_strength,
+            uv_scale = metal_surface.uv_scale,
             double_sided = true,
         },
         suit_edge = {
@@ -85,6 +100,11 @@ return {
             direction = { -0.30, -0.58, -0.76 },
             color = { 0.80, 0.55, 1.00, 1.0 },
             ambient = { 0.180, 0.060, 0.310, 1.0 },
+            fill = {
+                direction = { 0.46, -0.32, 0.72 },
+                color = { 0.38, 0.16, 0.62 },
+                strength = 0.16,
+            },
         },
     },
 
