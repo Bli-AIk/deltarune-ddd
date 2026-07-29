@@ -83,6 +83,10 @@ return {
 
     authored_scene = {
         path = "kingbattle_scene.glb",
+        -- The GLB keeps the editable Blender layout in native Z-up space.
+        -- ddd-3d performs the one explicit B(x, y, z) -> E(x, -z, -y)
+        -- conversion while instantiating the authored scene.
+        coordinate_space = "blender_z_up",
         root = "DDD_SCENE_ROOT",
         required_nodes = {
             "DDD_SCENE_ROOT",

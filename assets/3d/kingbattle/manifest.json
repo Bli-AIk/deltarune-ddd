@@ -5,9 +5,15 @@
   "coordinate_system": {
     "format": "glTF 2.0 binary (.glb)",
     "handedness": "right",
-    "right": "+X",
-    "forward": "-Z",
-    "up": "+Y",
+    "source_coordinate_space": "blender_z_up",
+    "source_right": "+X",
+    "source_forward": "-Y",
+    "source_up": "+Z",
+    "runtime_right": "+X",
+    "runtime_forward": "-Z",
+    "runtime_up": "+Y",
+    "runtime_conversion": "B(x, y, z) -> E(x, -z, -y)",
+    "loader_option": "coordinate_space=blender_z_up",
     "units": "Blender scene units",
     "asset_origin": "DDD_SCENE_ROOT",
     "scene_layout": "Blender collection hierarchy"
@@ -15,6 +21,7 @@
   "authored_scene": {
     "file": "kingbattle_scene.glb",
     "collection": "DDD_KINGBATTLE",
+    "coordinate_space": "blender_z_up",
     "root": "DDD_SCENE_ROOT",
     "required_nodes": [
       "DDD_SCENE_ROOT",
@@ -47,18 +54,18 @@
     "local_bounds": {
       "min": [
         -14.4,
-        -13.5,
-        -20.200001
+        -20.200001,
+        -9.900001
       ],
       "max": [
         14.4,
-        9.9,
-        4.2
+        4.200002,
+        13.500002
       ],
       "size": [
         28.799999,
-        23.4,
-        24.400002
+        24.400002,
+        23.400002
       ]
     },
     "glb_mesh_count": 13,

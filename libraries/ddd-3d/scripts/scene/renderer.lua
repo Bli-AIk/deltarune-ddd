@@ -147,6 +147,15 @@ local function renderable_lists(node, inherited_visible, opaque, transparent)
     end
 end
 
+local function linear_determinant(matrix)
+    local a00, a01, a02 = matrix[1], matrix[5], matrix[9]
+    local a10, a11, a12 = matrix[2], matrix[6], matrix[10]
+    local a20, a21, a22 = matrix[3], matrix[7], matrix[11]
+    return a00 * (a11 * a22 - a12 * a21)
+        - a01 * (a10 * a22 - a12 * a20)
+        + a02 * (a10 * a21 - a11 * a20)
+end
+
 function Renderer.new(options)
     options = options or {}
     if type(options) ~= "table" then
@@ -383,6 +392,13 @@ function Renderer:_drawRenderable(entry, scene, view_projection)
     end
     if love.graphics.setMeshCullMode then
         love.graphics.setMeshCullMode(material.double_sided and "none" or "back")
+    end
+    -- A Blender-native source conversion is reflective. Keep the GPU's
+    -- front-facing result aligned with the transformed triangle winding for
+    -- both culling and double-sided normal handling.
+    if love.graphics.setFrontFaceWinding then
+        local winding = linear_determinant(entry.node.world_matrix) < 0 and "cw" or "ccw"
+        love.graphics.setFrontFaceWinding(winding)
     end
     love.graphics.setShader(shader)
     local uniforms = {

@@ -30,6 +30,30 @@ local COMPONENTS = {
 local Model = {}
 Model.__index = Model
 
+-- glTF normally stores +Y-up data. A Blender-authored layout may instead keep
+-- Blender's native axes in the GLB so artists can use X/right, -Y/forward,
+-- and Z/up without a hidden exporter remap. LÖVE's render target has an
+-- inverted visual Y direction, so the explicit source-to-renderer mapping is
+-- B(x, y, z) -> E(x, -z, -y). It is a reflection, not a quaternion rotation.
+local BLENDER_Z_UP_SPACE = "blender_z_up"
+local BLENDER_TO_ENGINE_MATRIX = {
+    1, 0,  0, 0,
+    0, 0, -1, 0,
+    0, -1, 0, 0,
+    0, 0,  0, 1,
+}
+
+local function coordinate_space(options)
+    local value = options.coordinate_space
+    if value == nil or value == "gltf_y_up" then
+        return "gltf_y_up"
+    end
+    if value == BLENDER_Z_UP_SPACE then
+        return value
+    end
+    return nil, "GLB coordinate_space must be gltf_y_up or blender_z_up"
+end
+
 local function release_resources(meshes, materials)
     for _, mesh in ipairs(meshes or {}) do
         if mesh and mesh.release then
@@ -605,6 +629,29 @@ function Model:instantiate(options)
         end
     end
     local instance = source:clone({})
+    if self.coordinate_space == BLENDER_Z_UP_SPACE then
+        -- The wrapper is deliberately created here instead of on Model.root:
+        -- named instantiation (the authored-scene path) clones a source node
+        -- directly and would otherwise bypass a model-root conversion.
+        local converted = Node.new({
+            name = "__ddd_blender_axis_conversion",
+            matrix = BLENDER_TO_ENGINE_MATRIX,
+            user_data = { ddd_coordinate_space = BLENDER_Z_UP_SPACE },
+        })
+        local added, add_err = converted:addChild(instance)
+        if not added then
+            return nil, add_err
+        end
+        -- Keep caller transform options on a separate outer node. Applying a
+        -- rotation or matrix directly to `converted` would erase its fixed
+        -- basis conversion through Transform:setRotation/setMatrix.
+        local outer = Node.new({ name = options.name or source.name })
+        added, add_err = outer:addChild(converted)
+        if not added then
+            return nil, add_err
+        end
+        instance = outer
+    end
     return apply_instance_options(instance, options)
 end
 
@@ -682,6 +729,10 @@ function GLBLoader.loadData(data, options)
     if type(options) ~= "table" then
         return nil, "GLB loader options must be a table"
     end
+    local source_space, source_space_err = coordinate_space(options)
+    if not source_space then
+        return nil, source_space_err
+    end
     local ok, model_or_err, model_err = xpcall(function()
         local document, binary_or_err = parse_glb(data)
         if not document then
@@ -721,6 +772,7 @@ function GLBLoader.loadData(data, options)
             materials = materials,
             fallback_material = fallback_material,
             source = options.source,
+            coordinate_space = source_space,
             released = false,
         }, Model)
     end, function(err)

@@ -8,8 +8,10 @@ Run from the mod root after arranging ``kingbattle_layout.blend`` in Blender:
 
 The ``DDD_KINGBATTLE`` collection is the single authority for cage, chain,
 card-suit, anchor, and parent-child transforms. This exporter deliberately
-does not position, rotate, or scale those objects. It only validates and emits
-the authored hierarchy as one glTF 2.0 binary file.
+does not position, rotate, scale, or remap those objects. It emits Blender's
+native ``X/right, -Y/forward, Z/up`` transforms into the GLB; ddd-3d performs
+the one explicit Blender-to-engine conversion while loading this authored
+scene.
 """
 
 from __future__ import annotations
@@ -25,7 +27,7 @@ from typing import Iterable
 
 import bmesh
 import bpy
-from mathutils import Matrix, Vector
+from mathutils import Matrix, Quaternion, Vector
 
 
 SCRIPT_PATH = Path(__file__).resolve()
@@ -33,6 +35,8 @@ DEFAULT_OUTPUT = SCRIPT_PATH.parent.parent / "assets" / "3d" / "kingbattle"
 LAYOUT_COLLECTION = "DDD_KINGBATTLE"
 SCENE_FILE = "kingbattle_scene.glb"
 SCENE_ROOT = "DDD_SCENE_ROOT"
+COORDINATE_SPACE = "blender_z_up"
+TRANSFORM_TOLERANCE = 1e-5
 
 SUITS = ("club", "spade", "heart", "diamond")
 REQUIRED_NODES = (
@@ -315,7 +319,9 @@ def export_glb(output_path: Path, objects: list[bpy.types.Object]) -> None:
         export_lights=False,
         export_animations=False,
         export_extras=True,
-        export_yup=True,
+        # Keep the GLB in Blender-native coordinates. The ddd-3d loader owns
+        # the explicit B(x, y, z) -> E(x, -z, -y) conversion for this asset.
+        export_yup=False,
         export_apply=True,
     )
 
@@ -444,25 +450,16 @@ def vector_values(vector: Vector) -> list[float]:
     return [round(value, 6) for value in vector]
 
 
-def blender_to_gltf(vector: Vector) -> list[float]:
-    """Convert Blender X/Y/Z axes to glTF X/Y/Z with export_yup enabled."""
-    return [round(vector.x, 6), round(vector.z, 6), round(-vector.y, 6)]
-
-
-def gltf_bounds(minimum: Vector, maximum: Vector) -> tuple[Vector, Vector]:
-    """Transform Blender AABB corners into the GLB coordinate convention."""
-    return (
-        Vector((minimum.x, minimum.z, -maximum.y)),
-        Vector((maximum.x, maximum.z, -minimum.y)),
-    )
+def blender_vector_values(vector: Vector) -> list[float]:
+    """Serialize a native Blender vector without silently changing axes."""
+    return [round(vector.x, 6), round(vector.y, 6), round(vector.z, 6)]
 
 
 def bounds_metadata(minimum: Vector, maximum: Vector) -> dict[str, list[float]]:
-    gltf_minimum, gltf_maximum = gltf_bounds(minimum, maximum)
     return {
-        "min": vector_values(gltf_minimum),
-        "max": vector_values(gltf_maximum),
-        "size": vector_values(gltf_maximum - gltf_minimum),
+        "min": vector_values(minimum),
+        "max": vector_values(maximum),
+        "size": vector_values(maximum - minimum),
     }
 
 
@@ -501,8 +498,8 @@ def prepare_asset(
         mesh.transform(localize)
         if spec.is_suit:
             # Curves arrive as horizontal Blender XY surfaces. Rotate them to
-            # a vertical, +Z-facing glTF convention before export_yup converts
-            # the axes, so the scene can hang them without an extra fix-up.
+            # the vertical Blender XZ plane so the authored camera sees their
+            # front face along its native -Y view direction.
             mesh.transform(SUIT_ORIENTATION)
         mesh.materials.clear()
         mesh.materials.append(material)
@@ -532,7 +529,7 @@ def prepared_metadata(prepared: PreparedAsset) -> dict[str, object]:
         "source_objects": list(prepared.spec.source_objects),
         "source_kind": prepared.spec.source_kind,
         "source_aabb_center": vector_values(prepared.source_center),
-        "glb_node_offset": blender_to_gltf(prepared.node_offset),
+        "blender_node_offset": blender_vector_values(prepared.node_offset),
         "vertex_count": sum(len(obj.data.vertices) for obj in prepared.objects),
         "triangle_count": sum(len(obj.data.polygons) for obj in prepared.objects),
         "local_bounds": bounds_metadata(prepared.local_minimum, prepared.local_maximum),
@@ -555,6 +552,12 @@ def require_layout_collection(name: str) -> bpy.types.Collection:
         )
     if not collection.all_objects:
         raise RuntimeError(f"Blender collection '{name}' is empty.")
+    coordinate_space = collection.get("ddd_coordinate_space")
+    if coordinate_space != COORDINATE_SPACE:
+        raise RuntimeError(
+            f"Blender collection '{name}' must declare "
+            f"ddd_coordinate_space={COORDINATE_SPACE!r}; got {coordinate_space!r}."
+        )
     return collection
 
 
@@ -665,6 +668,68 @@ def verify_authored_scene(document: dict[str, object]) -> None:
         )
 
 
+def node_local_matrix(node: dict[str, object]) -> Matrix:
+    """Read a glTF node transform without applying an axis convention."""
+    matrix_values = node.get("matrix")
+    if matrix_values is not None:
+        if not isinstance(matrix_values, (list, tuple)) or len(matrix_values) != 16:
+            raise RuntimeError(f"Node '{node.get('name')}' has an invalid matrix.")
+        return Matrix(
+            (
+                matrix_values[0:4],
+                matrix_values[4:8],
+                matrix_values[8:12],
+                matrix_values[12:16],
+            )
+        ).transposed()
+
+    translation = node.get("translation", (0.0, 0.0, 0.0))
+    rotation = node.get("rotation", (0.0, 0.0, 0.0, 1.0))
+    scale = node.get("scale", (1.0, 1.0, 1.0))
+    if (
+        not isinstance(translation, (list, tuple))
+        or len(translation) != 3
+        or not isinstance(rotation, (list, tuple))
+        or len(rotation) != 4
+        or not isinstance(scale, (list, tuple))
+        or len(scale) != 3
+    ):
+        raise RuntimeError(f"Node '{node.get('name')}' has an invalid TRS transform.")
+    return Matrix.LocRotScale(
+        Vector(translation),
+        Quaternion((rotation[3], rotation[0], rotation[1], rotation[2])),
+        Vector(scale),
+    )
+
+
+def matrix_delta(first: Matrix, second: Matrix) -> float:
+    return max(
+        abs(first[row][column] - second[row][column])
+        for row in range(4)
+        for column in range(4)
+    )
+
+
+def verify_native_blender_transforms(
+    document: dict[str, object],
+    collection: bpy.types.Collection,
+) -> None:
+    """Reject a future exporter change that silently rotates this layout."""
+    indices = named_node_indices(document)
+    collection_objects = set(collection.all_objects)
+    for name in REQUIRED_NODES:
+        object_ = bpy.data.objects.get(name)
+        if object_ is None or object_ not in collection_objects:
+            raise RuntimeError(f"Required Blender object '{name}' is not in '{collection.name}'.")
+        node = document["nodes"][indices[name]]
+        delta = matrix_delta(object_.matrix_local, node_local_matrix(node))
+        if delta > TRANSFORM_TOLERANCE:
+            raise RuntimeError(
+                f"Native Blender transform mismatch for '{name}' (max delta {delta:.6g}). "
+                "The exporter must not remap authored axes."
+            )
+
+
 def authored_scene_metadata(
     output_dir: Path,
     collection: bpy.types.Collection,
@@ -681,6 +746,7 @@ def authored_scene_metadata(
     verification = verify_glb(glb_path, list(REQUIRED_NODES))
     document = read_glb_document(glb_path)
     verify_authored_scene(document)
+    verify_native_blender_transforms(document, collection)
 
     minimum, maximum = object_bounds(mesh_objects)
     material_names = sorted(
@@ -691,6 +757,7 @@ def authored_scene_metadata(
     return {
         "file": glb_path.name,
         "collection": collection.name,
+        "coordinate_space": COORDINATE_SPACE,
         "root": SCENE_ROOT,
         "required_nodes": list(REQUIRED_NODES),
         "material_names": material_names,
@@ -716,9 +783,15 @@ def main() -> None:
         "coordinate_system": {
             "format": "glTF 2.0 binary (.glb)",
             "handedness": "right",
-            "right": "+X",
-            "forward": "-Z",
-            "up": "+Y",
+            "source_coordinate_space": COORDINATE_SPACE,
+            "source_right": "+X",
+            "source_forward": "-Y",
+            "source_up": "+Z",
+            "runtime_right": "+X",
+            "runtime_forward": "-Z",
+            "runtime_up": "+Y",
+            "runtime_conversion": "B(x, y, z) -> E(x, -z, -y)",
+            "loader_option": "coordinate_space=blender_z_up",
             "units": "Blender scene units",
             "asset_origin": SCENE_ROOT,
             "scene_layout": "Blender collection hierarchy",

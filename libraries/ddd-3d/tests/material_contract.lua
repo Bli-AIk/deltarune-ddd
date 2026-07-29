@@ -206,6 +206,35 @@ assert(fill.specular_strength == 0)
 assert(fill.ambient_reflection == 0)
 assert(inline_model:release())
 
+-- A Blender-native GLB keeps Z-up source transforms. The library applies the
+-- basis exactly once, including when a named authored root is instantiated.
+local blender_model = assert(GLBLoader.loadData(glb, {
+    coordinate_space = "blender_z_up",
+}))
+local blender_instance = assert(blender_model:instantiate({
+    node = "DDD_SCENE_ROOT",
+    position = { 1, 2, 3 },
+    rotation = { 0, 0, 0, 1 },
+}))
+blender_instance:updateWorldMatrix()
+local blender_anchor = assert(blender_instance:find("anchor_camera"))
+-- Source anchor B(0, 0, 2) becomes E(0, -2, 0), then receives the outer
+-- engine-space placement E(1, 2, 3).
+assert(math.abs(blender_anchor.world_matrix[13] - 1) < 0.00001)
+assert(math.abs(blender_anchor.world_matrix[14] - 0) < 0.00001)
+assert(math.abs(blender_anchor.world_matrix[15] - 3) < 0.00001)
+-- Source B(0, -3, 0) retains Blender forward as renderer E(0, 0, 3).
+local blender_suits = assert(blender_instance:find("suits"))
+assert(math.abs(blender_suits.world_matrix[13] - 1) < 0.00001)
+assert(math.abs(blender_suits.world_matrix[14] - 2) < 0.00001)
+assert(math.abs(blender_suits.world_matrix[15] - 6) < 0.00001)
+assert(blender_model:release())
+
+local invalid_space, invalid_space_err = GLBLoader.loadData(glb, {
+    coordinate_space = "unexpected",
+})
+assert(not invalid_space and invalid_space_err:find("coordinate_space", 1, true))
+
 fixture_has_duplicate_material = true
 local duplicate_model = assert(GLBLoader.loadData(glb))
 local duplicate, duplicate_err = duplicate_model:requireUniqueMaterial("suit_outline_metal")
@@ -237,6 +266,7 @@ local function definition()
         },
         authored_scene = {
             path = "fixture.glb",
+            coordinate_space = "blender_z_up",
             root = "DDD_SCENE_ROOT",
             required_nodes = {
                 "DDD_SCENE_ROOT",
@@ -331,6 +361,11 @@ local invalid_chain_terminal = definition()
 invalid_chain_terminal.authored_scene.motions[2].terminal = "missing_terminal"
 local valid_chain_terminal, chain_terminal_err = Runtime.validateDefinition(invalid_chain_terminal)
 assert(not valid_chain_terminal and chain_terminal_err:find("required_nodes", 1, true))
+
+local invalid_coordinate_space = definition()
+invalid_coordinate_space.authored_scene.coordinate_space = "unexpected"
+local valid_coordinate_space, coordinate_space_err = Runtime.validateDefinition(invalid_coordinate_space)
+assert(not valid_coordinate_space and coordinate_space_err:find("coordinate_space", 1, true))
 
 local missing = definition()
 missing.authored_scene.material_overrides.missing_material = "purple_outline"

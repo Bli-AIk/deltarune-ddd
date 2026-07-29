@@ -204,6 +204,15 @@ local function validate_authored_scene(specification, materials)
     if type(specification.path) ~= "string" or specification.path == "" then
         return path_error("authored_scene.path", "must be a non-empty GLB path")
     end
+    if specification.coordinate_space ~= nil
+        and specification.coordinate_space ~= "gltf_y_up"
+        and specification.coordinate_space ~= "blender_z_up"
+    then
+        return path_error(
+            "authored_scene.coordinate_space",
+            "must be gltf_y_up or blender_z_up"
+        )
+    end
     if type(specification.root) ~= "string" or specification.root == "" then
         return path_error("authored_scene.root", "must be a non-empty Blender node name")
     end
@@ -555,6 +564,12 @@ function Runtime.validateDefinition(definition)
             end
             if type(asset) ~= "table" or type(asset.path) ~= "string" or asset.path == "" then
                 return nil, "assets." .. id .. " must define a non-empty path"
+            end
+            if asset.coordinate_space ~= nil
+                and asset.coordinate_space ~= "gltf_y_up"
+                and asset.coordinate_space ~= "blender_z_up"
+            then
+                return nil, "assets." .. id .. ".coordinate_space must be gltf_y_up or blender_z_up"
             end
             if asset.material_overrides then
                 if type(asset.material_overrides) ~= "table" then
@@ -1177,6 +1192,7 @@ function Runtime.new(definition, context)
             {
                 source = authored_specification.path,
                 material_overrides = authored_overrides,
+                coordinate_space = authored_specification.coordinate_space,
             }
         )
         if not model then
@@ -1231,6 +1247,7 @@ function Runtime.new(definition, context)
                 source = asset.path,
                 mesh_usage = asset.mesh_usage,
                 material_overrides = material_overrides,
+                coordinate_space = asset.coordinate_space,
             })
             if not model then
                 return abort("asset " .. asset_id .. ": " .. tostring(model_err))

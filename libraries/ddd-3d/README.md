@@ -21,6 +21,25 @@ and node transforms.
 `Model:instantiate({ node = "name" })` and `spawn(..., { node = "name" })`
 clone just that named source subtree while sharing GPU mesh data.
 
+### Blender-Native Coordinates
+
+Ordinary GLB files use the default `gltf_y_up` source space. For an editable
+Blender-first scene that intentionally preserves Blender axes in its GLB, pass
+`coordinate_space = "blender_z_up"`:
+
+```lua
+local model = assert(DDD3D.loadGLB("assets/models/layout.glb", {
+    coordinate_space = "blender_z_up",
+}))
+```
+
+The library wraps every instance, including named-root instances, with one
+explicit basis matrix: Blender `B(x, y, z)` becomes renderer
+`E(x, -z, -y)`. The matrix accounts for LÖVE render-target Y orientation.
+Instance placement options remain engine-space. Named source nodes keep their
+Blender-local transforms, so authored motion axes are written in Blender local
+coordinates. This is a library capability, not a game-specific adjustment.
+
 ## Declarative Runtime
 
 Use the runtime when a controller should only forward data and lifecycle calls.
@@ -35,7 +54,10 @@ local definition = {
         light = { direction = {-0.3, -0.7, -0.5}, ambient = {0.2, 0.2, 0.25} },
     },
     assets = {
-        model = { path = "assets/models/example.glb" },
+        model = {
+            path = "assets/models/example.glb",
+            coordinate_space = "blender_z_up",
+        },
     },
     instances = {
         {
@@ -69,6 +91,7 @@ repeatable, non-synchronous motion without relying on global random state.
 ```lua
 authored_scene = {
     -- Path, root, camera, and material overrides omitted.
+    coordinate_space = "blender_z_up",
     required_nodes = { "scene_root", "pendulum_pivot" },
     motions = {
         {

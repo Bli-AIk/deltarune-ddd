@@ -36,12 +36,14 @@ vec4 position(mat4 transform_projection, vec4 vertex_position)
 {
     vec4 world_position = u_model * vertex_position;
     v_world_position = world_position.xyz;
-    v_world_normal = normalize(u_normal_matrix * VertexNormal);
     mat3 model_linear = mat3(u_model);
+    float model_handedness = dot(cross(model_linear[0], model_linear[1]), model_linear[2]) < 0.0 ? -1.0 : 1.0;
+    // inverse-transpose alone is opposite to geometric winding under a
+    // reflection. Align the normal with the transformed triangle surface.
+    v_world_normal = normalize(u_normal_matrix * VertexNormal) * model_handedness;
     vec3 world_tangent = normalize(model_linear * VertexTangent.xyz);
     world_tangent = normalize(world_tangent - v_world_normal * dot(v_world_normal, world_tangent));
-    float model_handedness = dot(cross(model_linear[0], model_linear[1]), model_linear[2]) < 0.0 ? -1.0 : 1.0;
-    v_world_tangent = vec4(world_tangent, VertexTangent.w * model_handedness);
+    v_world_tangent = vec4(world_tangent, VertexTangent.w);
     return u_view_projection * world_position;
 }
 #endif
