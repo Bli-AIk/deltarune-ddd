@@ -16,24 +16,19 @@ The exporter validates and emits `kingbattle_scene.glb`; it never lays out,
 repositions, rotates, or scales scene objects. `manifest.json` records the
 resulting GLB contract.
 
-The visual-style migration is idempotent and can be reapplied to an existing
-layout when source geometry is refreshed:
-
-```sh
-blender --background assets/3d/kingbattle/kingbattle_layout.blend \
-  --python tools/apply_kingbattle_layout_style.py
-```
-
 `kingbattle/textures/` contains the shared PBR maps used by the cage and
-chains. The style migration reconnects those maps in Blender, while
+chains. Those maps are connected in the editable Blender materials, while
 `scripts/scenes/kingbattle_3d.lua` selects the matching runtime normal and
-roughness maps. Static transforms stay in Blender in both cases.
+roughness maps. Static transforms stay in Blender in both cases. The
+one-time bootstrap, style, and refinement scripts use the `.bak` suffix and
+are archival only; edit the `.blend` directly, then run the exporter above.
 
 The material contract is deliberately small:
 
 | Material | Authored role |
 | --- | --- |
-| `cage_metal` | purple-tinted cage metal |
-| `chain_metal` | purple-tinted chain metal |
+| `background_wall` | low-contrast deep-blue textured enclosure outside the cage |
+| `cage_metal` | deep-blue weathered cage metal |
+| `chain_metal` | darker weathered chain metal |
 | `suit_edge` | purple tubes along the model's real feature edges |
 | `suit_fill` | opaque black extruded symbol body |

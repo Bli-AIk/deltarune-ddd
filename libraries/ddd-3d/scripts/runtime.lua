@@ -13,6 +13,8 @@ local MOTION_KINDS = {
     bob = true,
     spin = true,
     pulse = true,
+    sway = true,
+    chain_sway = true,
 }
 
 -- Composite is library-internal; declarative materials may only select a
@@ -268,13 +270,85 @@ local function validate_motion(motion, path)
         return true
     end
     if type(motion) ~= "table" or not MOTION_KINDS[motion.kind] then
-        return path_error(path, "kind must be bob, spin, or pulse")
+        return path_error(path, "kind must be bob, spin, pulse, sway, or chain_sway")
     end
     local valid, err = validate_vector(motion.axis, 3, path .. ".axis", true)
     if not valid then return nil, err end
     for _, field in ipairs({ "amplitude", "speed", "phase" }) do
         if motion[field] ~= nil and not finite(motion[field]) then
             return path_error(path .. "." .. field, "must be a finite number")
+        end
+    end
+    if motion.kind == "sway" or motion.kind == "chain_sway" then
+        valid, err = validate_vector(motion.secondary_axis, 3, path .. ".secondary_axis", true)
+        if not valid then return nil, err end
+        for _, field in ipairs({ "secondary_amplitude", "secondary_speed", "secondary_phase" }) do
+            if motion[field] ~= nil and not finite(motion[field]) then
+                return path_error(path .. "." .. field, "must be a finite number")
+            end
+        end
+    end
+    if motion.kind == "chain_sway" then
+        if type(motion.terminal) ~= "string" or motion.terminal == "" then
+            return path_error(path .. ".terminal", "must be a non-empty authored node name")
+        end
+        valid, err = validate_vector(motion.link_axis, 3, path .. ".link_axis", true)
+        if not valid then return nil, err end
+        for _, field in ipairs({ "link_amplitude", "link_phase_lag", "link_min_weight", "link_curve" }) do
+            if motion[field] ~= nil and not finite(motion[field]) then
+                return path_error(path .. "." .. field, "must be a finite number")
+            end
+        end
+        if motion.link_min_weight ~= nil and (motion.link_min_weight < 0 or motion.link_min_weight > 1) then
+            return path_error(path .. ".link_min_weight", "must be between 0 and 1")
+        end
+        if motion.link_curve ~= nil and motion.link_curve <= 0 then
+            return path_error(path .. ".link_curve", "must be positive")
+        end
+    end
+    return true
+end
+
+local function validate_authored_motions(specification)
+    if specification.motions == nil then
+        return true
+    end
+    local count, array_err = validate_dense_array(specification.motions, "authored_scene.motions")
+    if not count then return nil, array_err end
+    local required_nodes, nodes_err = validate_unique_name_array(
+        specification.required_nodes,
+        "authored_scene.required_nodes"
+    )
+    if not required_nodes then return nil, nodes_err end
+    local animated_nodes = {}
+    for index = 1, count do
+        local motion = specification.motions[index]
+        local path = "authored_scene.motions." .. tostring(index)
+        if type(motion) ~= "table" then
+            return path_error(path, "must be a motion table")
+        end
+        if type(motion.node) ~= "string" or motion.node == "" then
+            return path_error(path .. ".node", "must be a non-empty authored node name")
+        end
+        if not required_nodes[motion.node] then
+            return path_error(path .. ".node", "must reference authored_scene.required_nodes")
+        end
+        if animated_nodes[motion.node] then
+            return path_error(path .. ".node", "must not animate the same node twice")
+        end
+        animated_nodes[motion.node] = true
+        local valid, err = validate_motion(motion, path)
+        if not valid then return nil, err end
+        if motion.kind == "chain_sway" then
+            if not required_nodes[motion.terminal] then
+                return path_error(
+                    path .. ".terminal",
+                    "must reference authored_scene.required_nodes"
+                )
+            end
+            if motion.terminal == motion.node then
+                return path_error(path .. ".terminal", "must be distinct from the chain node")
+            end
         end
     end
     return true
@@ -513,6 +587,8 @@ function Runtime.validateDefinition(definition)
     if authored_scene then
         local authored_valid, authored_err = validate_authored_scene(definition.authored_scene, definition.materials)
         if not authored_valid then return nil, authored_err end
+        local authored_motions_valid, authored_motions_err = validate_authored_motions(definition.authored_scene)
+        if not authored_motions_valid then return nil, authored_motions_err end
     else
         for asset_id, asset in pairs(definition.assets) do
             for source_name, material in pairs(asset.material_overrides or {}) do
@@ -645,6 +721,9 @@ function Runtime.validateDefinition(definition)
         if not valid then return nil, err end
         valid, err = validate_motion(instance.motion, "instances." .. tostring(index) .. ".motion")
         if not valid then return nil, err end
+        if instance.motion and instance.motion.kind == "chain_sway" then
+            return nil, "instances." .. tostring(index) .. ".motion.chain_sway requires authored_scene"
+        end
         if instance.material ~= nil then
             if type(instance.material) ~= "string" then
                 valid, err = validate_material_spec(instance.material, "instances." .. tostring(index) .. ".material")
@@ -788,20 +867,84 @@ local function node_world_position(node)
     return Math3D.transformPoint(node.world_matrix, { 0, 0, 0 })
 end
 
-local function add_motion(runtime, node, specification)
-    local motion = specification.motion
-    if not motion then return end
-    runtime.motions[#runtime.motions + 1] = {
+local function collect_authored_chain_links(node, output)
+    for _, child in ipairs(node.children) do
+        if child.user_data and child.user_data.ddd_role == "chain_link" then
+            output[#output + 1] = child
+        else
+            collect_authored_chain_links(child, output)
+        end
+    end
+end
+
+local function ordered_authored_chain_links(node, node_name)
+    local links = {}
+    collect_authored_chain_links(node, links)
+    if #links == 0 then
+        return nil, "chain_sway node " .. tostring(node_name) .. " has no ddd_role=chain_link descendants"
+    end
+    for _, link in ipairs(links) do
+        local authored_index = link.user_data.ddd_link_index
+        if not finite(authored_index) or authored_index < 0 or authored_index % 1 ~= 0 then
+            return nil, "chain_sway link " .. tostring(link.name) .. " has an invalid ddd_link_index"
+        end
+    end
+    table.sort(links, function(left, right)
+        return left.user_data.ddd_link_index < right.user_data.ddd_link_index
+    end)
+    for index, link in ipairs(links) do
+        local authored_index = link.user_data.ddd_link_index
+        if authored_index ~= index - 1 then
+            return nil, "chain_sway links below " .. tostring(node_name) .. " must use dense ddd_link_index values"
+        end
+    end
+    return links
+end
+
+local function add_motion(runtime, node, specification, authored_nodes)
+    local motion = specification.motion or specification
+    if not motion.kind then return true end
+    local entry = {
         node = node,
         kind = motion.kind,
         axis = Math3D.normalize3(motion.axis or { 0, 1, 0 }, { 0, 1, 0 }),
         amplitude = motion.amplitude or 0,
         speed = motion.speed or 0,
         phase = motion.phase or 0,
+        secondary_axis = motion.secondary_axis
+            and Math3D.normalize3(motion.secondary_axis, { 0, 0, 1 })
+            or nil,
+        secondary_amplitude = motion.secondary_amplitude or 0,
+        secondary_speed = motion.secondary_speed or 0,
+        secondary_phase = motion.secondary_phase or 0,
         position = Math3D.copy3(node.position),
         rotation = Math3D.copyQuat(node.rotation),
         scale = Math3D.copy3(node.scale, { 1, 1, 1 }),
     }
+    if motion.kind == "chain_sway" then
+        local terminal = authored_nodes and authored_nodes[motion.terminal]
+        if not terminal then
+            return nil, "chain_sway terminal is unavailable: " .. tostring(motion.terminal)
+        end
+        local links, links_err = ordered_authored_chain_links(node, specification.node)
+        if not links then return nil, links_err end
+        entry.terminal = terminal
+        entry.terminal_rotation = Math3D.copyQuat(terminal.rotation)
+        entry.link_axis = Math3D.normalize3(motion.link_axis or motion.axis or { 0, 1, 0 }, { 0, 1, 0 })
+        entry.link_amplitude = motion.link_amplitude == nil and entry.amplitude or motion.link_amplitude
+        entry.link_phase_lag = motion.link_phase_lag or 0
+        entry.link_min_weight = motion.link_min_weight or 0
+        entry.link_curve = motion.link_curve or 1
+        entry.links = {}
+        for _, link in ipairs(links) do
+            entry.links[#entry.links + 1] = {
+                node = link,
+                rotation = Math3D.copyQuat(link.rotation),
+            }
+        end
+    end
+    runtime.motions[#runtime.motions + 1] = entry
+    return true
 end
 
 local function copy_vec2(value, fallback)
@@ -872,6 +1015,24 @@ function Runtime:_applyAuthoredCamera()
     return true
 end
 
+local function oscillating_rotation(time, base_rotation, motion, value)
+    local rotation = Math3D.multiplyQuat(
+        base_rotation,
+        Math3D.quatFromAxisAngle(motion.axis, motion.amplitude * value)
+    )
+    if motion.secondary_axis then
+        local secondary_value = math.sin(time * motion.secondary_speed + motion.secondary_phase)
+        rotation = Math3D.multiplyQuat(
+            rotation,
+            Math3D.quatFromAxisAngle(
+                motion.secondary_axis,
+                motion.secondary_amplitude * secondary_value
+            )
+        )
+    end
+    return rotation
+end
+
 function Runtime:_applyMotions(world_context)
     for _, motion in ipairs(self.motions) do
         local value = math.sin(self.time * motion.speed + motion.phase)
@@ -883,6 +1044,26 @@ function Runtime:_applyMotions(world_context)
         elseif motion.kind == "pulse" then
             local scale = 1 + motion.amplitude * value
             motion.node:setScale(motion.scale[1] * scale, motion.scale[2] * scale, motion.scale[3] * scale)
+        elseif motion.kind == "sway" then
+            motion.node:setRotation(oscillating_rotation(self.time, motion.rotation, motion, value))
+        elseif motion.kind == "chain_sway" then
+            motion.terminal:setRotation(oscillating_rotation(self.time, motion.terminal_rotation, motion, value))
+            local link_count = #motion.links
+            for index, link in ipairs(motion.links) do
+                local progress = link_count == 1 and 1 or (index - 1) / (link_count - 1)
+                local weight = motion.link_min_weight
+                    + (1 - motion.link_min_weight) * progress ^ motion.link_curve
+                local link_value = math.sin(
+                    self.time * motion.speed + motion.phase - (1 - progress) * motion.link_phase_lag
+                )
+                link.node:setRotation(Math3D.multiplyQuat(
+                    link.rotation,
+                    Math3D.quatFromAxisAngle(
+                        motion.link_axis,
+                        motion.link_amplitude * weight * link_value
+                    )
+                ))
+            end
         end
     end
     local camera_motion = self.camera_motion
@@ -1024,6 +1205,17 @@ function Runtime.new(definition, context)
             camera_anchor = cloned_nodes[authored_specification.camera.anchor],
             camera_target = cloned_nodes[authored_specification.camera.target_anchor],
         }
+        for _, specification in ipairs(authored_specification.motions or {}) do
+            local motion_ok, motion_err = add_motion(
+                runtime,
+                cloned_nodes[specification.node],
+                specification,
+                cloned_nodes
+            )
+            if not motion_ok then
+                return abort("authored_scene: " .. tostring(motion_err))
+            end
+        end
     else
         for _, asset_id in ipairs(ordered_keys(definition.assets)) do
             local asset = definition.assets[asset_id]
@@ -1068,7 +1260,10 @@ function Runtime.new(definition, context)
             if specification.id then
                 runtime.nodes[specification.id] = node
             end
-            add_motion(runtime, node, specification)
+            local motion_ok, motion_err = add_motion(runtime, node, specification)
+            if not motion_ok then
+                return abort("instance " .. tostring(index) .. ": " .. tostring(motion_err))
+            end
         end
     end
     if definition.camera_motion then

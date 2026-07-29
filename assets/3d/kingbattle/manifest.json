@@ -18,6 +18,7 @@
     "root": "DDD_SCENE_ROOT",
     "required_nodes": [
       "DDD_SCENE_ROOT",
+      "environment_shell",
       "cage",
       "anchor_camera",
       "anchor_camera_target",
@@ -36,31 +37,32 @@
       "diamond"
     ],
     "material_names": [
+      "background_wall",
       "cage_metal",
       "chain_metal",
       "suit_edge",
       "suit_fill"
     ],
-    "vertex_count": 31228,
+    "vertex_count": 35077,
     "local_bounds": {
       "min": [
-        -11.428536,
-        -11.785295,
-        -18.770185
+        -14.4,
+        -13.5,
+        -20.200001
       ],
       "max": [
-        11.428536,
-        8.185294,
-        2.770185
+        14.4,
+        9.9,
+        4.2
       ],
       "size": [
-        22.857073,
-        19.970589,
-        21.540371
+        28.799999,
+        23.4,
+        24.400002
       ]
     },
-    "glb_mesh_count": 50,
-    "glb_node_count": 67,
-    "triangle_count": 36772
+    "glb_mesh_count": 13,
+    "glb_node_count": 100,
+    "triangle_count": 29568
   }
 }

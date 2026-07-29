@@ -37,6 +37,7 @@ SCENE_ROOT = "DDD_SCENE_ROOT"
 SUITS = ("club", "spade", "heart", "diamond")
 REQUIRED_NODES = (
     SCENE_ROOT,
+    "environment_shell",
     "cage",
     "anchor_camera",
     "anchor_camera_target",
@@ -46,6 +47,7 @@ REQUIRED_NODES = (
     *SUITS,
 )
 REQUIRED_MATERIALS = {
+    "background_wall",
     "cage_metal",
     "chain_metal",
     "suit_edge",
@@ -576,6 +578,34 @@ def descendants_have_mesh(nodes: list[dict[str, object]], index: int) -> bool:
     return any(descendants_have_mesh(nodes, child) for child in node.get("children", []))
 
 
+def descendant_indices(nodes: list[dict[str, object]], index: int) -> Iterable[int]:
+    for child in nodes[index].get("children", []):
+        yield child
+        yield from descendant_indices(nodes, child)
+
+
+def verify_chain_links(nodes: list[dict[str, object]], chain_index: int, chain_name: str) -> None:
+    links: list[tuple[int, int]] = []
+    for index in descendant_indices(nodes, chain_index):
+        extras = nodes[index].get("extras", {})
+        if extras.get("ddd_role") != "chain_link":
+            continue
+        link_index = extras.get("ddd_link_index")
+        if isinstance(link_index, bool) or not isinstance(link_index, (int, float)):
+            raise RuntimeError(f"'{nodes[index].get('name', index)}' needs an integer ddd_link_index.")
+        if link_index < 0 or link_index != int(link_index):
+            raise RuntimeError(f"'{nodes[index].get('name', index)}' has an invalid ddd_link_index.")
+        if not descendants_have_mesh(nodes, index):
+            raise RuntimeError(f"'{nodes[index].get('name', index)}' must contain a renderable mesh descendant.")
+        links.append((int(link_index), index))
+
+    if not links:
+        raise RuntimeError(f"'{chain_name}' needs ddd_role=chain_link descendants.")
+    ordered_indices = sorted(index for index, _ in links)
+    if ordered_indices != list(range(len(ordered_indices))):
+        raise RuntimeError(f"'{chain_name}' chain links must use dense ddd_link_index values from zero.")
+
+
 def verify_authored_scene(document: dict[str, object]) -> None:
     nodes = document.get("nodes", [])
     if not isinstance(nodes, list):
@@ -594,6 +624,7 @@ def verify_authored_scene(document: dict[str, object]) -> None:
 
     root_children = set(nodes[indices[SCENE_ROOT]].get("children", []))
     required_root_children = {
+        "environment_shell",
         "cage",
         "anchor_camera",
         "anchor_camera_target",
@@ -614,6 +645,7 @@ def verify_authored_scene(document: dict[str, object]) -> None:
         for mesh_node in (f"chain_{suit}", suit):
             if not descendants_have_mesh(nodes, indices[mesh_node]):
                 raise RuntimeError(f"'{mesh_node}' must contain a renderable mesh descendant.")
+        verify_chain_links(nodes, indices[f"chain_{suit}"], f"chain_{suit}")
 
     if not descendants_have_mesh(nodes, indices["cage"]):
         raise RuntimeError("'cage' must contain a renderable mesh descendant.")

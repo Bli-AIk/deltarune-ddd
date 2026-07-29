@@ -419,6 +419,7 @@ local function node_options(source)
         position = source.translation,
         rotation = source.rotation,
         scale = source.scale,
+        user_data = type(source.extras) == "table" and source.extras or nil,
     }
     if source.matrix then
         options.matrix = source.matrix

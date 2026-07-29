@@ -16,15 +16,17 @@ from mathutils import Vector
 
 
 SUITS = ("club", "spade", "heart", "diamond")
-STYLE_VERSION = 3
+STYLE_VERSION = 7
 
 EDGE_MATERIAL = "suit_edge"
 FILL_MATERIAL = "suit_fill"
+BACKGROUND_MATERIAL = "background_wall"
 
 # Purple edge treatment is real scene geometry. It follows feature edges in
 # the closed suit mesh, so a box would receive all twelve physical edges,
 # including the edges on its rear and side faces.
 FEATURE_EDGE_COSINE = math.cos(math.radians(32.0))
+DEGENERATE_FACE_AREA_EPSILON = 1e-10
 EDGE_RADIUS_FACTOR = 0.009
 EDGE_MIN_RADIUS = 0.008
 EDGE_SEGMENTS = 6
@@ -39,18 +41,32 @@ METAL_TEXTURE_FILES = {
     "roughness": "blue_metal_plate_rough_1k.jpg",
 }
 METAL_UV_SCALE = (1.0, 1.0, 1.0)
-METAL_NORMAL_STRENGTH = 0.22
+METAL_NORMAL_STRENGTH = 0.16
 
 MATERIALS = {
     "cage_metal": {
-        "color": (0.15, 0.14, 0.34, 1.0),
-        "metallic": 0.62,
-        "roughness": 0.28,
+        "color": (0.46, 0.61, 0.86, 1.0),
+        "metallic": 0.78,
+        "roughness": 0.66,
+        "normal_strength": 0.16,
+        "roughness_min": 0.42,
+        "roughness_max": 0.82,
     },
     "chain_metal": {
-        "color": (0.30, 0.25, 0.56, 1.0),
-        "metallic": 0.72,
-        "roughness": 0.20,
+        "color": (0.22, 0.32, 0.48, 1.0),
+        "metallic": 0.82,
+        "roughness": 0.58,
+        "normal_strength": 0.12,
+        "roughness_min": 0.38,
+        "roughness_max": 0.76,
+    },
+    BACKGROUND_MATERIAL: {
+        "color": (0.36, 0.50, 0.74, 1.0),
+        "metallic": 0.24,
+        "roughness": 0.92,
+        "normal_strength": 0.07,
+        "roughness_min": 0.72,
+        "roughness_max": 0.98,
     },
     EDGE_MATERIAL: {
         "color": (0.43, 0.05, 0.94, 1.0),
@@ -135,8 +151,8 @@ def _configure_metal_texture_nodes(
     links.new(mapping.outputs["Vector"], albedo.inputs["Vector"])
 
     tint = nodes.new("ShaderNodeRGB")
-    tint.name = "DDD Metal Purple Tint"
-    tint.label = "Scene Purple Tint"
+    tint.name = "DDD Metal Scene Tint"
+    tint.label = "Scene Metal Tint"
     tint.location = (-520, 55)
     tint.outputs["Color"].default_value = specification["color"]
     color_mix = nodes.new("ShaderNodeMixRGB")
@@ -157,7 +173,8 @@ def _configure_metal_texture_nodes(
     normal_map = nodes.new("ShaderNodeNormalMap")
     normal_map.name = "DDD Metal Normal"
     normal_map.location = (-110, -120)
-    normal_map.inputs["Strength"].default_value = METAL_NORMAL_STRENGTH
+    normal_strength = specification.get("normal_strength", METAL_NORMAL_STRENGTH)
+    normal_map.inputs["Strength"].default_value = normal_strength
     links.new(normal_texture.outputs["Color"], normal_map.inputs["Color"])
     links.new(normal_map.outputs["Normal"], principled.inputs["Normal"])
 
@@ -172,14 +189,14 @@ def _configure_metal_texture_nodes(
     roughness_range.location = (-110, -360)
     roughness_range.inputs["From Min"].default_value = 0.0
     roughness_range.inputs["From Max"].default_value = 1.0
-    roughness_range.inputs["To Min"].default_value = 0.20
-    roughness_range.inputs["To Max"].default_value = 0.52
+    roughness_range.inputs["To Min"].default_value = specification.get("roughness_min", 0.20)
+    roughness_range.inputs["To Max"].default_value = specification.get("roughness_max", 0.52)
     links.new(roughness_texture.outputs["Color"], roughness_range.inputs["Value"])
     links.new(roughness_range.outputs["Result"], principled.inputs["Roughness"])
 
     links.new(principled.outputs["BSDF"], output.inputs["Surface"])
     material["ddd_pbr_texture_set"] = METAL_TEXTURE_SET
-    material["ddd_normal_strength"] = METAL_NORMAL_STRENGTH
+    material["ddd_normal_strength"] = normal_strength
     material["ddd_uv_scale"] = METAL_UV_SCALE[:2]
 
 
@@ -195,7 +212,7 @@ def ensure_material(name: str) -> bpy.types.Material:
         principled.inputs["Base Color"].default_value = specification["color"]
         principled.inputs["Metallic"].default_value = specification["metallic"]
         principled.inputs["Roughness"].default_value = specification["roughness"]
-    if name in {"cage_metal", "chain_metal"}:
+    if name in {"cage_metal", "chain_metal", BACKGROUND_MATERIAL}:
         _configure_metal_texture_nodes(material, specification)
     return material
 
@@ -242,6 +259,13 @@ def _find_fill_mesh(suit: bpy.types.Object, suit_name: str) -> bpy.types.Object:
     raise RuntimeError(f"'{suit_name}' needs one source mesh for its solid fill.")
 
 
+def _is_degenerate_face(face: bmesh.types.BMFace) -> bool:
+    return (
+        face.calc_area() <= DEGENERATE_FACE_AREA_EPSILON
+        or face.normal.length_squared <= DEGENERATE_FACE_AREA_EPSILON
+    )
+
+
 def _feature_edge_segments(mesh: bpy.types.Mesh) -> list[tuple[Vector, Vector]]:
     bm = bmesh.new()
     try:
@@ -251,8 +275,12 @@ def _feature_edge_segments(mesh: bpy.types.Mesh) -> list[tuple[Vector, Vector]]:
         for edge in bm.edges:
             linked_faces = edge.link_faces
             is_boundary = len(linked_faces) != 2
+            # Source meshes occasionally include zero-area fan triangles at a
+            # silhouette tip. They have no real surface normal, so they must
+            # never form a crease; boundary edges remain real outlines.
             is_crease = (
                 not is_boundary
+                and not any(_is_degenerate_face(face) for face in linked_faces)
                 and linked_faces[0].normal.dot(linked_faces[1].normal)
                 < FEATURE_EDGE_COSINE
             )
@@ -261,6 +289,42 @@ def _feature_edge_segments(mesh: bpy.types.Mesh) -> list[tuple[Vector, Vector]]:
         return segments
     finally:
         bm.free()
+
+
+def _heart_tip_depth_segment(mesh: bpy.types.Mesh) -> tuple[Vector, Vector]:
+    """Return the real front-to-back edge at the heart's lowest pointed tip."""
+
+    bm = bmesh.new()
+    try:
+        bm.from_mesh(mesh)
+        candidates = []
+        for edge in bm.edges:
+            first, second = edge.verts
+            delta = first.co - second.co
+            is_depth_edge = (
+                abs(delta.x) < 0.0001
+                and abs(delta.z) < 0.0001
+                and abs(delta.y) > 0.0001
+            )
+            if is_depth_edge:
+                candidates.append((min(first.co.z, second.co.z), first.co.copy(), second.co.copy()))
+        if not candidates:
+            raise RuntimeError("Heart mesh has no front-to-back edge at its pointed tip.")
+        _, start, finish = min(candidates, key=lambda candidate: candidate[0])
+        return start, finish
+    finally:
+        bm.free()
+
+
+def _supplemental_feature_segments(
+    suit_name: str,
+    mesh: bpy.types.Mesh,
+) -> list[tuple[Vector, Vector]]:
+    if suit_name == "heart":
+        # This is a genuine edge in the heart's extrusion, not a screen-space
+        # outline. The smooth side surface hides it from the crease test.
+        return [_heart_tip_depth_segment(mesh)]
+    return []
 
 
 def _edge_radius(mesh: bpy.types.Mesh) -> float:
@@ -322,6 +386,7 @@ def _rebuild_edge_mesh(
     faces: list[tuple[int, int, int]] = []
     radius = _edge_radius(fill.data)
     segments = _feature_edge_segments(fill.data)
+    segments.extend(_supplemental_feature_segments(suit_name, fill.data))
     for start, finish in segments:
         _append_tube(vertices, faces, start, finish, radius)
     if not faces:
@@ -383,6 +448,8 @@ def apply_layout_style(collection: bpy.types.Collection) -> dict[str, object]:
             _assign_material(object_, cage_material)
         elif object_.name.startswith("chain_") and "_mesh_" in object_.name:
             _assign_material(object_, chain_material)
+        elif object_.name == "environment_shell":
+            _assign_material(object_, ensure_material(BACKGROUND_MATERIAL))
 
     for suit_name in SUITS:
         style_suit(collection, suit_name)

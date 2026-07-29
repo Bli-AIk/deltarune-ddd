@@ -62,7 +62,21 @@ local function fixture_document()
             { name = "DDD_SCENE_ROOT", children = { 1, 2, 3 } },
             { name = "anchor_camera", translation = { 0, 0, 2 } },
             { name = "anchor_camera_target", translation = { 0, 0, 0 } },
-            { name = "suits", mesh = 0 },
+            { name = "swing_pivot", children = { 4, 5 } },
+            { name = "suits", mesh = 0, translation = { 0, -3, 0 } },
+            { name = "chain", children = { 6, 7 } },
+            {
+                name = "chain_link_00",
+                mesh = 0,
+                translation = { 0, -1, 0 },
+                extras = { ddd_role = "chain_link", ddd_link_index = 0 },
+            },
+            {
+                name = "chain_link_01",
+                mesh = 0,
+                translation = { 0, -2, 0 },
+                extras = { ddd_role = "chain_link", ddd_link_index = 1 },
+            },
         },
         scenes = {
             { nodes = { 0 } },
@@ -228,6 +242,8 @@ local function definition()
                 "DDD_SCENE_ROOT",
                 "anchor_camera",
                 "anchor_camera_target",
+                "swing_pivot",
+                "chain",
                 "suits",
             },
             material_overrides = {
@@ -237,6 +253,32 @@ local function definition()
             camera = {
                 anchor = "anchor_camera",
                 target_anchor = "anchor_camera_target",
+            },
+            motions = {
+                {
+                    node = "swing_pivot",
+                    kind = "sway",
+                    axis = { 0, 0, 1 },
+                    amplitude = 0.2,
+                    speed = 1,
+                    secondary_axis = { 0, 1, 0 },
+                    secondary_amplitude = 0.05,
+                    secondary_speed = 1.7,
+                },
+                {
+                    node = "chain",
+                    kind = "chain_sway",
+                    terminal = "suits",
+                    axis = { 0, 0, 1 },
+                    amplitude = 0.5,
+                    speed = 0.4,
+                    phase = 1.2,
+                    link_axis = { 0, 0, 1 },
+                    link_amplitude = 0.35,
+                    link_phase_lag = 0.5,
+                    link_min_weight = 0.1,
+                    link_curve = 1.2,
+                },
             },
         },
         scene = {
@@ -265,7 +307,30 @@ assert(runtime_outline.roughness_texture == "/fixture-assets/textures/roughness.
 assert(runtime_fill.name == "black_fill")
 assert(runtime_fill.specular_strength == 0)
 assert(runtime_fill.ambient_reflection == 0)
+local swing_pivot = assert(runtime:getNode("swing_pivot"))
+local chain = assert(runtime:getNode("chain"))
+local suits = assert(runtime:getNode("suits"))
+assert(suits.parent == swing_pivot)
+assert(runtime:update(1))
+assert(math.abs(swing_pivot.rotation[3]) > 0.01)
+assert(math.abs(suits.world_matrix[13]) > 0.01)
+assert(math.abs(suits.rotation[3]) > 0.01)
+local upper_link = assert(chain:find("chain_link_00"))
+local lower_link = assert(chain:find("chain_link_01"))
+assert(upper_link.user_data.ddd_link_index == 0)
+assert(lower_link.user_data.ddd_link_index == 1)
+assert(math.abs(lower_link.rotation[3]) > math.abs(upper_link.rotation[3]))
 assert(runtime:release())
+
+local invalid_authored_motion = definition()
+invalid_authored_motion.authored_scene.motions[1].node = "missing_pivot"
+local valid_authored_motion, authored_motion_err = Runtime.validateDefinition(invalid_authored_motion)
+assert(not valid_authored_motion and authored_motion_err:find("required_nodes", 1, true))
+
+local invalid_chain_terminal = definition()
+invalid_chain_terminal.authored_scene.motions[2].terminal = "missing_terminal"
+local valid_chain_terminal, chain_terminal_err = Runtime.validateDefinition(invalid_chain_terminal)
+assert(not valid_chain_terminal and chain_terminal_err:find("required_nodes", 1, true))
 
 local missing = definition()
 missing.authored_scene.material_overrides.missing_material = "purple_outline"

@@ -55,7 +55,75 @@ assert(runtime:update(DT))
 assert(runtime:draw())
 ```
 
-Supported instance motion kinds are `bob`, `spin`, and `pulse`.
+Supported instance motion kinds are `bob`, `spin`, `pulse`, and `sway`.
+`chain_sway` is reserved for Blender-authored hierarchy scenes.
+
+## Authored Hierarchy Motion
+
+An authored GLB may animate named, Blender-authored hierarchy nodes without
+moving scene placement into Lua. Declare each node in `required_nodes`, then
+attach a data-only motion entry. `sway` composes a primary pendulum rotation
+with an optional small secondary twist; varying speeds and phases provides
+repeatable, non-synchronous motion without relying on global random state.
+
+```lua
+authored_scene = {
+    -- Path, root, camera, and material overrides omitted.
+    required_nodes = { "scene_root", "pendulum_pivot" },
+    motions = {
+        {
+            node = "pendulum_pivot",
+            kind = "sway",
+            axis = {0, 0, 1},
+            amplitude = 0.03,
+            speed = 0.55,
+            secondary_axis = {0, 1, 0},
+            secondary_amplitude = 0.01,
+            secondary_speed = 1.1,
+        },
+    },
+}
+```
+
+The pivot and its children remain fully editable in Blender. Any chain, prop,
+or character parented below that pivot follows the same motion automatically.
+
+### Articulated Chain Response
+
+`chain_sway` animates an authored terminal and every tagged chain link without
+declaring link positions or node lists in Lua. The terminal uses `axis` in its
+parent space; each link uses `link_axis` in the chain node's local space. Both
+angles are sinusoidal and bounded, so they slow at the configured limit and
+reverse rather than continuously spinning.
+
+```lua
+authored_scene = {
+    -- Path, root, camera, and material overrides omitted.
+    required_nodes = { "chain", "hanging_symbol" },
+    motions = {
+        {
+            node = "chain",
+            kind = "chain_sway",
+            terminal = "hanging_symbol",
+            axis = {0, 1, 0},
+            amplitude = math.rad(40),
+            speed = 1.3,
+            phase = 0.7,
+            link_axis = {0, 1, 0},
+            link_amplitude = math.rad(24),
+            link_phase_lag = 0.7,
+            link_min_weight = 0.08,
+            link_curve = 1.35,
+        },
+    },
+}
+```
+
+In Blender, tag each link object with custom properties
+`ddd_role = "chain_link"` and a dense zero-based `ddd_link_index`. The GLB
+loader retains these extras and orders the response by the authored index.
+This makes the chain topology and rest layout Blender-owned while the library
+only applies the declared dynamic behavior.
 
 ## Materials
 

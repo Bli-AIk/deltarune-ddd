@@ -1,0 +1,246 @@
+#!/usr/bin/env python3
+"""Historical one-time migration for the King Battle Blender layout.
+
+This script writes the textured enclosure and rebuilt chain links into the
+editable .blend. It is intentionally not part of the normal export workflow;
+future composition changes should be made directly in Blender.
+"""
+
+from __future__ import annotations
+
+import math
+import sys
+from pathlib import Path
+
+import bpy
+from mathutils import Matrix, Vector
+
+
+SCRIPT_PATH = Path(__file__).resolve()
+if str(SCRIPT_PATH.parent) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_PATH.parent))
+
+import kingbattle_layout_style as style
+
+
+LAYOUT_COLLECTION = "DDD_KINGBATTLE"
+SCENE_ROOT = "DDD_SCENE_ROOT"
+SUITS = ("club", "spade", "heart", "diamond")
+
+SHELL_SEGMENTS = 96
+SHELL_ROWS = 12
+SHELL_RADIUS_X = 14.4
+SHELL_RADIUS_Y = 12.2
+SHELL_HALF_HEIGHT = 11.7
+
+CHAIN_LINK_COUNT = 18
+CHAIN_LINK_SCALE = 0.46
+CHAIN_LINK_SPACING = 0.36
+CHAIN_SYMBOL_GAP = 0.055
+
+
+def require_object(name: str) -> bpy.types.Object:
+    object_ = bpy.data.objects.get(name)
+    if object_ is None:
+        raise RuntimeError(f"King Battle layout is missing '{name}'.")
+    return object_
+
+
+def assign_material(object_: bpy.types.Object, material: bpy.types.Material) -> None:
+    if object_.type != "MESH":
+        raise RuntimeError(f"'{object_.name}' must be a mesh.")
+    object_.data.materials.clear()
+    object_.data.materials.append(material)
+
+
+def remove_object(object_: bpy.types.Object) -> None:
+    data = object_.data if object_.type == "MESH" else None
+    bpy.data.objects.remove(object_, do_unlink=True)
+    if data is not None and data.users == 0:
+        bpy.data.meshes.remove(data)
+
+
+def create_environment_shell(
+    collection: bpy.types.Collection,
+    root: bpy.types.Object,
+    material: bpy.types.Material,
+) -> bpy.types.Object:
+    previous = bpy.data.objects.get("environment_shell")
+    if previous is not None:
+        remove_object(previous)
+
+    vertices: list[tuple[float, float, float]] = []
+    faces: list[tuple[int, int, int, int]] = []
+    uv_by_vertex: list[tuple[float, float]] = []
+
+    for row in range(SHELL_ROWS + 1):
+        v = row / SHELL_ROWS
+        z = -SHELL_HALF_HEIGHT + 2.0 * SHELL_HALF_HEIGHT * v
+        for segment in range(SHELL_SEGMENTS + 1):
+            u = segment / SHELL_SEGMENTS
+            angle = 2.0 * 3.141592653589793 * u
+            # Seam duplication gives the artist a clean cylindrical UV island.
+            vertices.append((
+                SHELL_RADIUS_X * math.sin(angle),
+                SHELL_RADIUS_Y * math.cos(angle),
+                z,
+            ))
+            uv_by_vertex.append((u, v))
+
+    stride = SHELL_SEGMENTS + 1
+    for row in range(SHELL_ROWS):
+        for segment in range(SHELL_SEGMENTS):
+            lower = row * stride + segment
+            upper = lower + stride
+            # This order points the front faces inward, toward the camera.
+            faces.append((lower, lower + 1, upper + 1, upper))
+
+    mesh = bpy.data.meshes.new("environment_shell_mesh")
+    mesh.from_pydata(vertices, [], faces)
+    mesh.materials.append(material)
+    mesh.update()
+    uv_layer = mesh.uv_layers.new(name="UVMap")
+    for polygon in mesh.polygons:
+        polygon.use_smooth = True
+        for loop_index in polygon.loop_indices:
+            vertex_index = mesh.loops[loop_index].vertex_index
+            uv_layer.data[loop_index].uv = uv_by_vertex[vertex_index]
+
+    shell = bpy.data.objects.new("environment_shell", mesh)
+    collection.objects.link(shell)
+    shell.parent = root
+    shell.matrix_parent_inverse.identity()
+    cage = require_object("cage")
+    shell.location = cage.location.copy()
+    shell.rotation_mode = cage.rotation_mode
+    shell.rotation_euler = cage.rotation_euler.copy()
+    shell["ddd_role"] = "environment_shell"
+    shell["ddd_authoring"] = "Blender layout geometry"
+    shell["ddd_radius_x"] = SHELL_RADIUS_X
+    shell["ddd_radius_y"] = SHELL_RADIUS_Y
+    shell["ddd_half_height"] = SHELL_HALF_HEIGHT
+    return shell
+
+
+def centered_mesh_copy(
+    source: bpy.types.Object,
+    name: str,
+    material: bpy.types.Material,
+) -> bpy.types.Mesh:
+    mesh = source.data.copy()
+    coordinates = [vertex.co for vertex in mesh.vertices]
+    minimum = Vector(tuple(min(point[axis] for point in coordinates) for axis in range(3)))
+    maximum = Vector(tuple(max(point[axis] for point in coordinates) for axis in range(3)))
+    mesh.transform(Matrix.Translation(-(minimum + maximum) * 0.5))
+    mesh.name = name
+    mesh.materials.clear()
+    mesh.materials.append(material)
+    return mesh
+
+
+def rebuild_chains(
+    collection: bpy.types.Collection,
+    material: bpy.types.Material,
+) -> None:
+    bpy.context.view_layer.update()
+    flat_source = require_object("chain_club_mesh_04")
+    crossed_source = require_object("chain_club_mesh_05")
+    link_meshes = (
+        centered_mesh_copy(flat_source, "chain_link_flat_mesh", material),
+        centered_mesh_copy(crossed_source, "chain_link_crossed_mesh", material),
+    )
+    half_link = max(abs(vertex.co.x) for vertex in link_meshes[0].vertices) * CHAIN_LINK_SCALE
+
+    for suit_name in SUITS:
+        chain = require_object(f"chain_{suit_name}")
+        suit = require_object(suit_name)
+        # The symbol origin is the authored lower end of the chain. Measuring
+        # it in chain-local space keeps a repeat run stable after the pendant
+        # parent has been promoted to a swing pivot.
+        lower_attachment = chain.matrix_world.inverted() @ suit.matrix_world.translation
+        for child in list(chain.children):
+            if child.type == "MESH" and child.name.startswith(f"chain_{suit_name}_mesh_"):
+                remove_object(child)
+
+        chain.scale = (1.0, 1.0, 1.0)
+        last_center = lower_attachment.x - half_link - CHAIN_SYMBOL_GAP
+        first_center = last_center - CHAIN_LINK_SPACING * (CHAIN_LINK_COUNT - 1)
+        for index in range(CHAIN_LINK_COUNT):
+            link = bpy.data.objects.new(
+                f"chain_{suit_name}_mesh_{index:02d}",
+                link_meshes[index % 2],
+            )
+            collection.objects.link(link)
+            link.parent = chain
+            link.matrix_parent_inverse.identity()
+            link.location = (first_center + CHAIN_LINK_SPACING * index, 0.0, 0.0)
+            link.scale = (CHAIN_LINK_SCALE,) * 3
+            link["ddd_role"] = "chain_link"
+            link["ddd_link_index"] = index
+
+        chain["ddd_link_count"] = CHAIN_LINK_COUNT
+        chain["ddd_link_scale"] = CHAIN_LINK_SCALE
+        chain["ddd_link_spacing"] = CHAIN_LINK_SPACING
+
+
+def first_chain_endpoint(chain: bpy.types.Object, suit_name: str) -> Vector:
+    first_link = require_object(f"chain_{suit_name}_mesh_00")
+    minimum_x = min(vertex.co.x for vertex in first_link.data.vertices)
+    return first_link.matrix_world @ Vector((minimum_x, 0.0, 0.0))
+
+
+def establish_pendulum_pivots() -> None:
+    """Promote each existing pendant parent to the chain's fixed upper pivot.
+
+    The pendant names and `pendant -> chain + suit` hierarchy remain stable for
+    the exporter. Only their Blender-local transforms change, with all child
+    world transforms restored before saving the static rest pose.
+    """
+
+    bpy.context.view_layer.update()
+    for suit_name in SUITS:
+        pendant = require_object(f"pendant_{suit_name}")
+        chain = require_object(f"chain_{suit_name}")
+        anchor = first_chain_endpoint(chain, suit_name)
+        children = [(child, child.matrix_world.copy()) for child in pendant.children]
+        pendant.matrix_world = Matrix.Translation(anchor)
+        for child, world_matrix in children:
+            child.matrix_world = world_matrix
+        pendant.empty_display_type = "CIRCLE"
+        pendant.empty_display_size = 0.24
+        pendant["ddd_role"] = "chain_swing_pivot"
+        pendant["ddd_swing_anchor"] = tuple(round(value, 6) for value in anchor)
+        pendant["ddd_swing_axis"] = "gltf:+Z"
+        bpy.context.view_layer.update()
+
+
+def main() -> None:
+    if not bpy.data.filepath:
+        raise RuntimeError("Open kingbattle_layout.blend before running this migration.")
+    collection = bpy.data.collections.get(LAYOUT_COLLECTION)
+    if collection is None:
+        raise RuntimeError(f"Missing Blender collection '{LAYOUT_COLLECTION}'.")
+    root = require_object(SCENE_ROOT)
+
+    background = style.ensure_material(style.BACKGROUND_MATERIAL)
+    cage_metal = style.ensure_material("cage_metal")
+    chain_metal = style.ensure_material("chain_metal")
+    create_environment_shell(collection, root, background)
+    for object_ in collection.all_objects:
+        if object_.type == "MESH" and object_.name.startswith("cage_mesh_"):
+            assign_material(object_, cage_metal)
+    rebuild_chains(collection, chain_metal)
+    establish_pendulum_pivots()
+
+    collection["ddd_environment_version"] = 1
+    collection["ddd_chain_layout_version"] = 1
+    collection["ddd_swing_hierarchy_version"] = 1
+    bpy.ops.wm.save_mainfile()
+    print(
+        f"Refined {bpy.data.filepath}: textured enclosure plus "
+        f"{CHAIN_LINK_COUNT} editable links and Blender swing pivots per chain."
+    )
+
+
+if __name__ == "__main__":
+    main()
