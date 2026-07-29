@@ -22,8 +22,8 @@ return {
             roughness = 0.20,
             double_sided = true,
         },
-        suit_outline = {
-            name = "kingbattle_suit_outline",
+        suit_edge = {
+            name = "kingbattle_suit_edge",
             shader = "lit",
             base_color = { 0.48, 0.05, 0.95, 1.0 },
             emissive = { 0.165, 0.008, 0.510 },
@@ -67,7 +67,7 @@ return {
         material_overrides = {
             cage_metal = "cage_metal",
             chain_metal = "chain_metal",
-            suit_outline = "suit_outline",
+            suit_edge = "suit_edge",
             suit_fill = "suit_fill",
         },
         camera = {

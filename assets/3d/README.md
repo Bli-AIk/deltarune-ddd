@@ -30,5 +30,5 @@ The material contract is deliberately small:
 | --- | --- |
 | `cage_metal` | purple-tinted cage metal |
 | `chain_metal` | purple-tinted chain metal |
-| `suit_outline` | purple outer silhouette |
-| `suit_fill` | inset black face |
+| `suit_edge` | purple tubes along the model's real feature edges |
+| `suit_fill` | opaque black extruded symbol body |

@@ -48,7 +48,7 @@ REQUIRED_NODES = (
 REQUIRED_MATERIALS = {
     "cage_metal",
     "chain_metal",
-    "suit_outline",
+    "suit_edge",
     "suit_fill",
 }
 SUIT_ORIENTATION = Matrix.Rotation(math.radians(90.0), 4, "X")
@@ -90,28 +90,28 @@ CHAIN = AssetSpec(
 SUIT_SPECS = (
     AssetSpec(
         asset_id="club",
-        material_name="suit_outline",
+        material_name="suit_edge",
         color=(0.43, 0.05, 0.94, 1.0),
         source_objects=("Curve",),
         is_suit=True,
     ),
     AssetSpec(
         asset_id="spade",
-        material_name="suit_outline",
+        material_name="suit_edge",
         color=(0.43, 0.05, 0.94, 1.0),
         source_objects=("Curve.001",),
         is_suit=True,
     ),
     AssetSpec(
         asset_id="heart",
-        material_name="suit_outline",
+        material_name="suit_edge",
         color=(0.43, 0.05, 0.94, 1.0),
         source_objects=("Curve.002",),
         is_suit=True,
     ),
     AssetSpec(
         asset_id="diamond",
-        material_name="suit_outline",
+        material_name="suit_edge",
         color=(0.43, 0.05, 0.94, 1.0),
         source_objects=("Curve.003",),
         is_suit=True,

@@ -38,10 +38,10 @@
     "material_names": [
       "cage_metal",
       "chain_metal",
-      "suit_fill",
-      "suit_outline"
+      "suit_edge",
+      "suit_fill"
     ],
-    "vertex_count": 9424,
+    "vertex_count": 31228,
     "local_bounds": {
       "min": [
         -11.428536,
@@ -61,6 +61,6 @@
     },
     "glb_mesh_count": 50,
     "glb_node_count": 67,
-    "triangle_count": 14952
+    "triangle_count": 36772
   }
 }

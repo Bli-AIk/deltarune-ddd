@@ -9,20 +9,24 @@ from __future__ import annotations
 
 import math
 
+import bmesh
 import bpy
 from mathutils import Vector
 
 
 SUITS = ("club", "spade", "heart", "diamond")
-STYLE_VERSION = 1
+STYLE_VERSION = 2
 
-OUTLINE_MATERIAL = "suit_outline"
+EDGE_MATERIAL = "suit_edge"
 FILL_MATERIAL = "suit_fill"
 
-# The fill is a separately authored mesh so it exports correctly through GLB
-# and does not depend on a screen-space outline shader.
-FILL_SCALE = Vector((0.78, 0.70, 0.78))
-FILL_FRONT_OFFSET = -0.16
+# Purple edge treatment is real scene geometry. It follows feature edges in
+# the closed suit mesh, so a box would receive all twelve physical edges,
+# including the edges on its rear and side faces.
+FEATURE_EDGE_COSINE = math.cos(math.radians(32.0))
+EDGE_RADIUS_FACTOR = 0.009
+EDGE_MIN_RADIUS = 0.008
+EDGE_SEGMENTS = 6
 
 MATERIALS = {
     "cage_metal": {
@@ -35,7 +39,7 @@ MATERIALS = {
         "metallic": 0.72,
         "roughness": 0.20,
     },
-    OUTLINE_MATERIAL: {
+    EDGE_MATERIAL: {
         "color": (0.43, 0.05, 0.94, 1.0),
         "metallic": 0.38,
         "roughness": 0.24,
@@ -77,50 +81,144 @@ def _assign_material(object_: bpy.types.Object, material: bpy.types.Material) ->
     object_.data.materials.append(material)
 
 
-def _find_outline_mesh(suit: bpy.types.Object, suit_name: str) -> bpy.types.Object:
+def _remove_object(object_: bpy.types.Object) -> None:
+    mesh = object_.data if object_.type == "MESH" else None
+    bpy.data.objects.remove(object_, do_unlink=True)
+    if mesh is not None and mesh.users == 0:
+        bpy.data.meshes.remove(mesh)
+
+
+def _find_fill_mesh(suit: bpy.types.Object, suit_name: str) -> bpy.types.Object:
     candidates = (
+        f"{suit_name}_fill_mesh_00",
         f"{suit_name}_outline_mesh_00",
         f"{suit_name}_mesh_00",
     )
     for name in candidates:
         object_ = bpy.data.objects.get(name)
-        if object_ is not None:
-            if object_.parent != suit:
-                raise RuntimeError(f"'{name}' must be a direct child of '{suit_name}'.")
-            if object_.type != "MESH":
-                raise RuntimeError(f"'{name}' must be a mesh.")
-            object_.name = f"{suit_name}_outline_mesh_00"
-            return object_
-    raise RuntimeError(f"'{suit_name}' needs one source mesh for its outline.")
+        if object_ is None:
+            continue
+        if object_.parent != suit:
+            raise RuntimeError(f"'{name}' must be a direct child of '{suit_name}'.")
+        if object_.type != "MESH":
+            raise RuntimeError(f"'{name}' must be a mesh.")
+
+        # Version 1 created a scaled fill duplicate under the original purple
+        # outline mesh. Version 2 keeps the original as the black solid body.
+        old_outline = bpy.data.objects.get(f"{suit_name}_outline_mesh_00")
+        old_fill = bpy.data.objects.get(f"{suit_name}_fill_mesh_00")
+        if old_outline is not None and object_ == old_fill:
+            object_ = old_outline
+        if old_fill is not None and old_fill != object_:
+            _remove_object(old_fill)
+        object_.name = f"{suit_name}_fill_mesh_00"
+        return object_
+    raise RuntimeError(f"'{suit_name}' needs one source mesh for its solid fill.")
 
 
-def _ensure_fill_mesh(
+def _feature_edge_segments(mesh: bpy.types.Mesh) -> list[tuple[Vector, Vector]]:
+    bm = bmesh.new()
+    try:
+        bm.from_mesh(mesh)
+        bm.normal_update()
+        segments = []
+        for edge in bm.edges:
+            linked_faces = edge.link_faces
+            is_boundary = len(linked_faces) != 2
+            is_crease = (
+                not is_boundary
+                and linked_faces[0].normal.dot(linked_faces[1].normal)
+                < FEATURE_EDGE_COSINE
+            )
+            if is_boundary or is_crease:
+                segments.append((edge.verts[0].co.copy(), edge.verts[1].co.copy()))
+        return segments
+    finally:
+        bm.free()
+
+
+def _edge_radius(mesh: bpy.types.Mesh) -> float:
+    coordinates = [vertex.co for vertex in mesh.vertices]
+    if not coordinates:
+        raise RuntimeError(f"'{mesh.name}' has no vertices.")
+    size = Vector((
+        max(point.x for point in coordinates) - min(point.x for point in coordinates),
+        max(point.y for point in coordinates) - min(point.y for point in coordinates),
+        max(point.z for point in coordinates) - min(point.z for point in coordinates),
+    ))
+    return max(EDGE_MIN_RADIUS, max(size) * EDGE_RADIUS_FACTOR)
+
+
+def _append_tube(
+    vertices: list[tuple[float, float, float]],
+    faces: list[tuple[int, int, int]],
+    start: Vector,
+    finish: Vector,
+    radius: float,
+) -> None:
+    direction = finish - start
+    if direction.length < 0.0001:
+        return
+    axis = direction.normalized()
+    reference = Vector((0.0, 0.0, 1.0))
+    if abs(axis.dot(reference)) > 0.92:
+        reference = Vector((0.0, 1.0, 0.0))
+    tangent = axis.cross(reference).normalized()
+    bitangent = axis.cross(tangent).normalized()
+    first = len(vertices)
+    for point in (start, finish):
+        for segment in range(EDGE_SEGMENTS):
+            angle = math.tau * segment / EDGE_SEGMENTS
+            offset = tangent * math.cos(angle) * radius + bitangent * math.sin(angle) * radius
+            vertices.append(tuple(point + offset))
+    for segment in range(EDGE_SEGMENTS):
+        next_segment = (segment + 1) % EDGE_SEGMENTS
+        start_a = first + segment
+        start_b = first + next_segment
+        finish_a = first + EDGE_SEGMENTS + segment
+        finish_b = first + EDGE_SEGMENTS + next_segment
+        faces.append((start_a, start_b, finish_b))
+        faces.append((start_a, finish_b, finish_a))
+
+
+def _rebuild_edge_mesh(
     collection: bpy.types.Collection,
     suit: bpy.types.Object,
     suit_name: str,
-    outline: bpy.types.Object,
+    fill: bpy.types.Object,
 ) -> bpy.types.Object:
-    name = f"{suit_name}_fill_mesh_00"
-    fill = bpy.data.objects.get(name)
-    if fill is None:
-        fill = outline.copy()
-        fill.data = outline.data.copy()
-        fill.name = name
-        collection.objects.link(fill)
-    if fill.parent not in (None, suit):
-        raise RuntimeError(f"'{name}' must be parented to '{suit_name}'.")
-    fill.parent = suit
-    fill.matrix_parent_inverse.identity()
-    fill.location = outline.location + Vector((0.0, FILL_FRONT_OFFSET, 0.0))
-    fill.rotation_mode = outline.rotation_mode
-    fill.rotation_euler = outline.rotation_euler.copy()
-    fill.scale = Vector((
-        outline.scale.x * FILL_SCALE.x,
-        outline.scale.y * FILL_SCALE.y,
-        outline.scale.z * FILL_SCALE.z,
-    ))
-    fill["ddd_role"] = "suit_fill"
-    return fill
+    name = f"{suit_name}_edge_mesh_00"
+    previous = bpy.data.objects.get(name)
+    if previous is not None:
+        _remove_object(previous)
+
+    vertices: list[tuple[float, float, float]] = []
+    faces: list[tuple[int, int, int]] = []
+    radius = _edge_radius(fill.data)
+    segments = _feature_edge_segments(fill.data)
+    for start, finish in segments:
+        _append_tube(vertices, faces, start, finish, radius)
+    if not faces:
+        raise RuntimeError(f"'{suit_name}' has no usable feature edges.")
+
+    mesh = bpy.data.meshes.new(f"{suit_name}_edge_mesh")
+    mesh.from_pydata(vertices, [], faces)
+    mesh.materials.append(ensure_material(EDGE_MATERIAL))
+    mesh.update()
+    for polygon in mesh.polygons:
+        polygon.use_smooth = True
+
+    edge = bpy.data.objects.new(name, mesh)
+    collection.objects.link(edge)
+    edge.parent = suit
+    edge.matrix_parent_inverse.identity()
+    edge.location = fill.location.copy()
+    edge.rotation_mode = fill.rotation_mode
+    edge.rotation_euler = fill.rotation_euler.copy()
+    edge.scale = fill.scale.copy()
+    edge["ddd_role"] = "suit_edge"
+    edge["ddd_feature_edge_count"] = len(segments)
+    return edge
 
 
 def _apply_vertical_flip(suit: bpy.types.Object) -> None:
@@ -135,12 +233,10 @@ def _apply_vertical_flip(suit: bpy.types.Object) -> None:
 
 def style_suit(collection: bpy.types.Collection, suit_name: str) -> None:
     suit = _require_object(suit_name)
-    outline = _find_outline_mesh(suit, suit_name)
-    outline["ddd_role"] = "suit_outline"
-    _assign_material(outline, ensure_material(OUTLINE_MATERIAL))
-
-    fill = _ensure_fill_mesh(collection, suit, suit_name, outline)
+    fill = _find_fill_mesh(suit, suit_name)
+    fill["ddd_role"] = "suit_fill"
     _assign_material(fill, ensure_material(FILL_MATERIAL))
+    _rebuild_edge_mesh(collection, suit, suit_name, fill)
     _apply_vertical_flip(suit)
 
 
