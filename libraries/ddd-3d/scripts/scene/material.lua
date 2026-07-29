@@ -1,6 +1,14 @@
 local Material = {}
 Material.__index = Material
 
+local function clamped_number(value, fallback, minimum, maximum)
+    value = tonumber(value)
+    if value == nil or value ~= value or value == math.huge or value == -math.huge then
+        return fallback
+    end
+    return math.max(minimum, math.min(maximum, value))
+end
+
 local function color(value, fallback)
     value = value or fallback
     return {
@@ -53,10 +61,22 @@ function Material.new(options)
         shader = options.shader or "lit",
         base_color = color(options.base_color or options.baseColor, { 1, 1, 1, 1 }),
         emissive = vec3(options.emissive, { 0, 0, 0 }),
-        metallic = math.max(0, math.min(1, tonumber(options.metallic) or 0)),
-        roughness = math.max(0.04, math.min(1, tonumber(options.roughness) or 0.75)),
+        metallic = clamped_number(options.metallic, 0, 0, 1),
+        roughness = clamped_number(options.roughness, 0.75, 0.04, 1),
+        specular_strength = clamped_number(
+            options.specular_strength or options.specularStrength,
+            1,
+            0,
+            1
+        ),
+        ambient_reflection = clamped_number(
+            options.ambient_reflection or options.ambientReflection,
+            0.8,
+            0,
+            1
+        ),
         alpha_mode = alpha_mode,
-        alpha_cutoff = tonumber(options.alpha_cutoff or options.alphaCutoff) or 0.5,
+        alpha_cutoff = clamped_number(options.alpha_cutoff or options.alphaCutoff, 0.5, 0, 1),
         double_sided = options.double_sided == true or options.doubleSided == true,
         texture = options.texture,
         released = false,
@@ -71,6 +91,12 @@ function Material:clone(overrides)
     overrides.emissive = overrides.emissive or self.emissive
     if overrides.metallic == nil then overrides.metallic = self.metallic end
     if overrides.roughness == nil then overrides.roughness = self.roughness end
+    if overrides.specular_strength == nil and overrides.specularStrength == nil then
+        overrides.specular_strength = self.specular_strength
+    end
+    if overrides.ambient_reflection == nil and overrides.ambientReflection == nil then
+        overrides.ambient_reflection = self.ambient_reflection
+    end
     overrides.alpha_mode = overrides.alpha_mode or self.alpha_mode
     if overrides.alpha_cutoff == nil then overrides.alpha_cutoff = self.alpha_cutoff end
     if overrides.double_sided == nil then overrides.double_sided = self.double_sided end
@@ -90,6 +116,9 @@ function Material:apply(shader)
         { "u_emissive", self.emissive },
         { "u_metallic", self.metallic },
         { "u_roughness", self.roughness },
+        { "u_specular_strength", self.specular_strength },
+        { "u_ambient_reflection", self.ambient_reflection },
+        { "u_double_sided", self.double_sided and 1 or 0 },
         { "u_alpha_cutoff", self.alpha_cutoff },
         { "u_alpha_mask", self.alpha_mode == "MASK" and 1 or 0 },
     }

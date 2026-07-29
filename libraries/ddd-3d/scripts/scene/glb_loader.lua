@@ -219,6 +219,13 @@ local function generate_normals(positions, indices)
     return normals
 end
 
+local function override_option(override, snake_case, camel_case)
+    if override[snake_case] ~= nil then
+        return override[snake_case]
+    end
+    return override[camel_case]
+end
+
 local function build_materials(document, options)
     local materials = {}
     local source_materials = document.materials or {}
@@ -226,16 +233,22 @@ local function build_materials(document, options)
     for index, source in ipairs(source_materials) do
         local pbr = source.pbrMetallicRoughness or {}
         local override = overrides[source.name] or overrides[index - 1] or {}
+        local base_color = override_option(override, "base_color", "baseColor")
+        local alpha_mode = override_option(override, "alpha_mode", "alphaMode")
+        local alpha_cutoff = override_option(override, "alpha_cutoff", "alphaCutoff")
+        local double_sided = override_option(override, "double_sided", "doubleSided")
         local material, err = Material.new({
             name = override.name or source.name or ("material_" .. (index - 1)),
             shader = override.shader or "lit",
-            base_color = override.base_color or pbr.baseColorFactor or { 1, 1, 1, 1 },
+            base_color = base_color or pbr.baseColorFactor or { 1, 1, 1, 1 },
             emissive = override.emissive or source.emissiveFactor or { 0, 0, 0 },
             metallic = override.metallic == nil and (pbr.metallicFactor or 0) or override.metallic,
             roughness = override.roughness == nil and (pbr.roughnessFactor or 1) or override.roughness,
-            alpha_mode = override.alpha_mode or source.alphaMode or "OPAQUE",
-            alpha_cutoff = override.alpha_cutoff or source.alphaCutoff,
-            double_sided = override.double_sided == nil and source.doubleSided or override.double_sided,
+            specular_strength = override_option(override, "specular_strength", "specularStrength"),
+            ambient_reflection = override_option(override, "ambient_reflection", "ambientReflection"),
+            alpha_mode = alpha_mode or source.alphaMode or "OPAQUE",
+            alpha_cutoff = alpha_cutoff or source.alphaCutoff,
+            double_sided = double_sided == nil and source.doubleSided or double_sided,
         })
         if not material then
             release_resources(nil, materials)

@@ -132,7 +132,16 @@ local function validate_material_spec(material, path)
     if not valid then return nil, err end
     valid, err = validate_vector(material.emissive, 3, path .. ".emissive", true)
     if not valid then return nil, err end
-    for _, field in ipairs({ "metallic", "roughness", "alpha_cutoff", "alphaCutoff" }) do
+    for _, field in ipairs({
+        "metallic",
+        "roughness",
+        "specular_strength",
+        "specularStrength",
+        "ambient_reflection",
+        "ambientReflection",
+        "alpha_cutoff",
+        "alphaCutoff",
+    }) do
         if material[field] ~= nil and not finite(material[field]) then
             return path_error(path .. "." .. field, "must be a finite number")
         end
@@ -626,6 +635,8 @@ local function copy_material_data(material)
         emissive = material.emissive,
         metallic = material.metallic,
         roughness = material.roughness,
+        specular_strength = material.specular_strength,
+        ambient_reflection = material.ambient_reflection,
         alpha_mode = material.alpha_mode,
         alpha_cutoff = material.alpha_cutoff,
         double_sided = material.double_sided,

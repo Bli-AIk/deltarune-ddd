@@ -54,9 +54,35 @@ assert(runtime:update(DT))
 assert(runtime:draw())
 ```
 
-Supported instance motion kinds are `bob`, `spin`, and `pulse`. Material maps
-can be declared globally in `materials`, referenced by instance material id, or
-used as `assets.<id>.material_overrides.<gltf_material_name>`.
+Supported instance motion kinds are `bob`, `spin`, and `pulse`.
+
+## Materials
+
+The built-in `lit` shader uses a compact metallic workflow with directional
+lighting and an ambient reflection approximation. `metallic` and `roughness`
+follow glTF conventions. `specular_strength` and `ambient_reflection` are
+optional, clamped `0..1` controls; both default to values that keep metal
+legible in a low-key scene. The camel-case aliases `specularStrength` and
+`ambientReflection` are accepted when a project uses that convention.
+
+Material maps can be declared globally in `materials`, referenced by instance
+material id, or used as `assets.<id>.material_overrides.<gltf_material_name>`.
+For a Blender-authored scene, map each source material name exactly once:
+
+```lua
+authored_scene = {
+    -- Other authored-scene fields omitted.
+    material_overrides = {
+        suit_outline_metal = "purple_outline",
+        suit_fill_black = "black_fill",
+    },
+}
+```
+
+The runtime checks that every authored source material exists exactly once in
+the GLB before spawning the authored scene. Double-sided materials keep their
+normal back-face behavior; `ambient_reflection` supplies the restrained
+directional reflection used to keep cage interiors and chain links readable.
 
 ## World Camera Rig
 

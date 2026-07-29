@@ -1,8 +1,8 @@
 KRISTAL ?=
 
-.PHONY: test test-static test-debug-tools test-kristal build-android
+.PHONY: test test-static test-debug-tools test-ddd-3d test-kristal build-android
 
-test: test-static test-debug-tools
+test: test-static test-debug-tools test-ddd-3d
 
 test-static:
 	sh .github/scripts/static-smoke.sh
@@ -13,6 +13,9 @@ test-static:
 
 test-debug-tools:
 	sh .github/scripts/template-justfile-smoke.sh
+
+test-ddd-3d:
+	luajit libraries/ddd-3d/tests/material_contract.lua
 
 test-kristal:
 	KRISTAL="$(KRISTAL)" sh .github/scripts/run-kristal-smoke.sh
