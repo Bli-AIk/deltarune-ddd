@@ -21,7 +21,7 @@ return {
         cage_metal = {
             name = "kingbattle_cage_metal",
             shader = "lit",
-            base_color = { 0.18, 0.22, 0.48, 1.0 },
+            base_color = { 0.16, 0.20, 0.44, 1.0 },
             emissive = { 0.004, 0.008, 0.030 },
             metallic = 0.76,
             roughness = 0.45,
@@ -37,9 +37,9 @@ return {
         chain_metal = {
             name = "kingbattle_chain_metal",
             shader = "lit",
-            base_color = { 0.16, 0.20, 0.38, 1.0 },
-            emissive = { 0.008, 0.014, 0.040 },
-            metallic = 0.72,
+            base_color = { 0.28, 0.32, 0.52, 1.0 },
+            emissive = { 0.075, 0.090, 0.22 },
+            metallic = 0.48,
             roughness = 0.36,
             specular_strength = 0.44,
             ambient_reflection = 0.48,
@@ -135,25 +135,25 @@ return {
             {
                 node = "light_cage_left",
                 color = { 0.20, 0.28, 0.90 },
-                strength = 7.0,
+                strength = 2.8,
                 range = 24.0,
             },
             {
                 node = "light_cage_right",
                 color = { 0.42, 0.16, 1.00 },
-                strength = 6.0,
+                strength = 2.4,
                 range = 24.0,
             },
             {
                 node = "light_cage_back",
                 color = { 0.08, 0.15, 0.52 },
-                strength = 4.5,
+                strength = 1.8,
                 range = 22.0,
             },
             {
                 node = "light_cage_floor",
                 color = { 0.22, 0.16, 0.62 },
-                strength = 2.5,
+                strength = 1.1,
                 range = 18.0,
             },
         },
@@ -258,12 +258,12 @@ return {
             -- side into the cage. Directions are ray travel, while the shader
             -- derives its lighting vector as -direction.
             direction = { -0.30, 0.58, 0.76 },
-            color = { 0.42, 0.50, 0.92, 1.0 },
-            ambient = { 0.060, 0.085, 0.185, 1.0 },
+            color = { 0.34, 0.42, 0.82, 1.0 },
+            ambient = { 0.036, 0.054, 0.125, 1.0 },
             fill = {
                 direction = { 0.46, 0.32, -0.72 },
-                color = { 0.14, 0.18, 0.42 },
-                strength = 0.22,
+                color = { 0.11, 0.15, 0.34 },
+                strength = 0.16,
             },
         },
     },

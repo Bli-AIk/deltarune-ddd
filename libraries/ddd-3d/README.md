@@ -217,6 +217,37 @@ scene = {
 }
 ```
 
+For authored Blender scenes, local point lights can reference empty anchor
+nodes. Their positions are read from the cloned GLB hierarchy every frame, so
+moving an anchor in Blender changes the lighting without adding placement
+coordinates to game code:
+
+```lua
+authored_scene = {
+    required_nodes = { "scene_root", "light_left" },
+    point_lights = {
+        { node = "light_left", color = {0.20, 0.28, 0.90}, strength = 2.5, range = 20 },
+    },
+}
+```
+
+The output compositor also supports an optional half-resolution bloom pass.
+It extracts bright material/emissive values, applies separable blur, then
+composites the result while preserving the scene's fog and vignette:
+
+```lua
+output = {
+    bloom = {
+        threshold = 0.20,
+        soft_knee = 0.10,
+        strength = 0.75,
+        radius = 1.4,
+        scale = 0.5,
+        tint = {0.62, 0.24, 1.0},
+    },
+}
+```
+
 ## World Camera Rig
 
 Controllers should capture a numeric world-camera snapshot, not calculate 3D
