@@ -10,7 +10,7 @@ return {
   tilewidth = 40,
   tileheight = 40,
   nextlayerid = 10,
-  nextobjectid = 43,
+  nextobjectid = 45,
   properties = {
     ["name"] = "King Battle",
     ["name_id"] = "map_room_cc_kingbattle_name",
@@ -91,6 +91,36 @@ return {
           rotation = 0,
           opacity = 1,
           gid = 41,
+          visible = true,
+          properties = {}
+        },
+        {
+          id = 43,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 0,
+          y = 560,
+          width = 615,
+          height = 160,
+          rotation = 0,
+          opacity = 1,
+          gid = 11,
+          visible = true,
+          properties = {}
+        },
+        {
+          id = 44,
+          name = "",
+          type = "",
+          shape = "rectangle",
+          x = 1226,
+          y = 560,
+          width = 774,
+          height = 160,
+          rotation = 0,
+          opacity = 1,
+          gid = 11,
           visible = true,
           properties = {}
         }
