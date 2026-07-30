@@ -103,6 +103,8 @@ copy_mod() {
         rm -rf "$stage_mod/libraries/object-editor"
         rm -rf "$stage_mod/libraries/terminal-cli"
         rm -rf "$stage_mod/libraries/kristal-debug-tools"
+        rm -rf "$stage_mod/libraries/bloom-tuner"
+        rm -rf "$stage_mod/libraries/love-suit"
     fi
 }
 

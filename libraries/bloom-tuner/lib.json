@@ -1,0 +1,13 @@
+{
+    "id": "bloom-tuner",
+    "version": "v0.1.0",
+    "engineVer": "v0.10.0",
+    "authors": ["deltarune-ddd contributors"],
+    "dependencies": ["love-suit"],
+    "config": {
+        "enabled": false,
+        "only_dev": true,
+        "toggle_key": "f10",
+        "show_on_attach": true
+    }
+}

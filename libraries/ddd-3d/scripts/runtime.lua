@@ -490,6 +490,31 @@ local function validate_camera_rig(rig, path)
     return true
 end
 
+local function validate_camera_follow(follow, path)
+    if follow == nil then
+        return true
+    end
+    if type(follow) ~= "table" or follow.kind ~= "player_x" then
+        return path_error(path, "kind must be player_x")
+    end
+    local valid, err = validate_vector(follow.position_offset, 3, path .. ".position_offset", true)
+    if not valid then return nil, err end
+    valid, err = validate_vector(follow.target_offset, 3, path .. ".target_offset", true)
+    if not valid then return nil, err end
+    for _, field in ipairs({ "reference_distance", "yaw", "smoothing" }) do
+        if follow[field] ~= nil and not finite(follow[field]) then
+            return path_error(path .. "." .. field, "must be a finite number")
+        end
+    end
+    if follow.reference_distance ~= nil and follow.reference_distance <= 0 then
+        return path_error(path .. ".reference_distance", "must be positive")
+    end
+    if follow.smoothing ~= nil and follow.smoothing < 0 then
+        return path_error(path .. ".smoothing", "must be non-negative")
+    end
+    return true
+end
+
 --- Validates the numeric snapshot returned by captureWorldContext.
 function Runtime.validateWorldContext(context)
     local plain, plain_err = validate_plain_value(context, "world context", {})
@@ -505,6 +530,14 @@ function Runtime.validateWorldContext(context)
     end
     if camera.zoom_x <= 0 or camera.zoom_y <= 0 then
         return nil, "world context camera zoom must be positive"
+    end
+    if context.player ~= nil then
+        if type(context.player) ~= "table"
+            or not finite(context.player.x)
+            or not finite(context.player.y)
+        then
+            return nil, "world context player must contain finite x and y values"
+        end
     end
     return true
 end
@@ -579,6 +612,14 @@ function Runtime.captureWorldContext(world, options)
             width = finite(world.width) and world.width or 0,
             height = finite(world.height) and world.height or 0,
         }
+        if options.include_player and type(world.player) == "table"
+            and finite(world.player.x) and finite(world.player.y)
+        then
+            context.player = {
+                x = world.player.x,
+                y = world.player.y,
+            }
+        end
     end
     return context
 end
@@ -767,6 +808,14 @@ function Runtime.validateDefinition(definition)
     if authored_scene and definition.camera_rig then
         return nil, "authored_scene may not define camera_rig"
     end
+    if definition.camera_follow and not authored_scene then
+        return nil, "camera_follow requires authored_scene camera anchors"
+    end
+    local camera_follow_valid, camera_follow_err = validate_camera_follow(
+        definition.camera_follow,
+        "camera_follow"
+    )
+    if not camera_follow_valid then return nil, camera_follow_err end
     if authored_scene and definition.instances ~= nil then
         return nil, "authored_scene may not define instances"
     end
@@ -1072,6 +1121,33 @@ local function make_camera_rig(specification, camera)
     }
 end
 
+local function make_camera_follow(specification)
+    if not specification then
+        return nil
+    end
+    return {
+        reference_distance = specification.reference_distance or 160,
+        position_offset = Math3D.copy3(specification.position_offset, { 0.24, 0, 0 }),
+        target_offset = Math3D.copy3(specification.target_offset, { 0.10, 0, 0 }),
+        yaw = specification.yaw or 0,
+        smoothing = specification.smoothing == nil and 7 or specification.smoothing,
+        reference_x = nil,
+        influence = 0,
+    }
+end
+
+local function rotate_around_y(point, pivot, angle)
+    local cosine = math.cos(angle)
+    local sine = math.sin(angle)
+    local x = point[1] - pivot[1]
+    local z = point[3] - pivot[3]
+    return {
+        pivot[1] + cosine * x + sine * z,
+        point[2],
+        pivot[3] - sine * x + cosine * z,
+    }
+end
+
 local function map_camera_point(rig, camera)
     local point = Math3D.copy3(rig.world_origin)
     local axes = MAP_PLANES[rig.map_plane]
@@ -1127,11 +1203,49 @@ function Runtime:_applyAuthoredCamera()
     self.scene.root:updateWorldMatrix()
     local position = node_world_position(authored_scene.camera_anchor)
     local target = node_world_position(authored_scene.camera_target)
+    self.authored_camera_position = Math3D.copy3(position)
+    self.authored_camera_target = Math3D.copy3(target)
     self.scene.camera:setPosition(position)
     local looked_at, look_err = self.scene.camera:lookAt(target)
     if not looked_at then
         return nil, look_err
     end
+    return true
+end
+
+function Runtime:_applyCameraFollow(world_context)
+    local follow = self.camera_follow
+    local player = world_context and world_context.player
+    if not follow or not player or not self.authored_camera_position or not self.authored_camera_target then
+        return true
+    end
+
+    if follow.reference_x == nil then
+        follow.reference_x = player.x
+        follow.influence = 0
+    end
+
+    local desired = (player.x - follow.reference_x) / follow.reference_distance
+    if follow.smoothing <= 0 or self.last_dt <= 0 then
+        follow.influence = desired
+    else
+        local amount = 1 - math.exp(-follow.smoothing * self.last_dt)
+        follow.influence = follow.influence + (desired - follow.influence) * amount
+    end
+
+    local position = rotate_around_y(
+        self.authored_camera_position,
+        self.authored_camera_target,
+        follow.yaw * follow.influence
+    )
+    position = Math3D.add3(position, Math3D.scale3(follow.position_offset, follow.influence))
+    local target = Math3D.add3(
+        self.authored_camera_target,
+        Math3D.scale3(follow.target_offset, follow.influence)
+    )
+    self.scene.camera:setPosition(position)
+    local looked_at, look_err = self.scene.camera:lookAt(target)
+    if not looked_at then return nil, look_err end
     return true
 end
 
@@ -1199,6 +1313,8 @@ function Runtime:_applyMotions(world_context)
     end
     local authored_ok, authored_err = self:_applyAuthoredCamera()
     if not authored_ok then return nil, authored_err end
+    local follow_ok, follow_err = self:_applyCameraFollow(world_context)
+    if not follow_ok then return nil, follow_err end
     return self:_applyCameraRig(world_context)
 end
 
@@ -1262,6 +1378,7 @@ function Runtime.new(definition, context)
         motions = {},
         owned_materials = {},
         time = 0,
+        last_dt = 0,
         output = merge_output(definition.output, runtime_context.output),
         released = false,
     }, Runtime)
@@ -1400,6 +1517,7 @@ function Runtime.new(definition, context)
             phase = motion.phase or 0,
         }
     end
+    runtime.camera_follow = make_camera_follow(definition.camera_follow)
     runtime.camera_rig = make_camera_rig(definition.camera_rig, scene.camera)
     local updated, update_err = runtime:update(0)
     if not updated then
@@ -1428,6 +1546,7 @@ function Runtime:update(dt, world_context)
         self.world_context = deep_copy(world_context)
     end
     self.time = self.time + dt
+    self.last_dt = dt
     local applied, apply_err = self:_applyMotions(self.world_context)
     if not applied then
         return nil, apply_err

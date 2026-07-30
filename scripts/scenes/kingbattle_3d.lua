@@ -252,6 +252,17 @@ return {
         },
     },
 
+    -- The first player position received by the runtime is the follow origin;
+    -- these values only control the subtle 3D response to horizontal travel.
+    camera_follow = {
+        kind = "player_x",
+        reference_distance = 160.0,
+        position_offset = { 0.24, 0.00, 0.00 },
+        target_offset = { 0.10, 0.00, 0.00 },
+        yaw = 2.4 * degree,
+        smoothing = 7.0,
+    },
+
     scene = {
         clear_color = { 0.006, 0.001, 0.016, 1.0 },
         light = {
@@ -279,8 +290,8 @@ return {
         bloom = {
             threshold = 0.16,
             soft_knee = 0.10,
-            strength = 0.92,
-            radius = 1.55,
+            strength = 1.25,
+            radius = 1.0,
             scale = 0.50,
             tint = { 0.62, 0.24, 1.0 },
         },

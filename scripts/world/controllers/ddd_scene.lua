@@ -85,7 +85,10 @@ function DDDScene:_worldContext()
     if not self.library or type(self.library.captureWorldContext) ~= "function" then
         return nil, "ddd-3d world-context support is unavailable"
     end
-    return self.library.captureWorldContext(self.world, { include_effects = false })
+    return self.library.captureWorldContext(self.world, {
+        include_effects = false,
+        include_player = true,
+    })
 end
 
 function DDDScene:onLoad()
@@ -98,6 +101,10 @@ function DDDScene:onLoad()
         return
     end
     self.runtime = runtime
+    self.tuner = Mod and Mod.libs and Mod.libs["bloom-tuner"]
+    if self.tuner and self.tuner.attach then
+        self.tuner:attach(runtime)
+    end
 end
 
 function DDDScene:update()
@@ -132,6 +139,10 @@ function DDDScene:release()
     end
     local runtime = self.runtime
     self.runtime = nil
+    if self.tuner and self.tuner.detach then
+        self.tuner:detach(runtime)
+    end
+    self.tuner = nil
     self.library = nil
     local released, err = runtime:release()
     if not released then
