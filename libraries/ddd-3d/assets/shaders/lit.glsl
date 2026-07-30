@@ -9,6 +9,22 @@ extern vec3 u_ambient_color;
 extern vec3 u_fill_light_direction;
 extern vec3 u_fill_light_color;
 extern number u_fill_light_strength;
+extern vec3 u_point_light_position_0;
+extern vec3 u_point_light_color_0;
+extern number u_point_light_strength_0;
+extern number u_point_light_range_0;
+extern vec3 u_point_light_position_1;
+extern vec3 u_point_light_color_1;
+extern number u_point_light_strength_1;
+extern number u_point_light_range_1;
+extern vec3 u_point_light_position_2;
+extern vec3 u_point_light_color_2;
+extern number u_point_light_strength_2;
+extern number u_point_light_range_2;
+extern vec3 u_point_light_position_3;
+extern vec3 u_point_light_color_3;
+extern number u_point_light_strength_3;
+extern number u_point_light_range_3;
 extern vec3 u_camera_position;
 extern number u_metallic;
 extern number u_roughness;
@@ -57,6 +73,32 @@ vec3 fresnelSchlick(vec3 base_reflectivity, float normal_view)
 {
     float grazing = pow(1.0 - clamp(normal_view, 0.0, 1.0), 5.0);
     return base_reflectivity + (vec3(1.0) - base_reflectivity) * grazing;
+}
+
+vec3 evaluatePointLight(
+    vec3 position,
+    vec3 color,
+    float strength,
+    float range,
+    vec3 normal,
+    vec3 to_camera,
+    vec3 fresnel,
+    vec3 diffuse_color,
+    float shininess,
+    float specular_strength
+)
+{
+    vec3 to_point = position - v_world_position;
+    float distance_to_point = length(to_point);
+    vec3 direction = to_point / max(distance_to_point, 0.0001);
+    float falloff = clamp(1.0 - distance_to_point / max(range, 0.0001), 0.0, 1.0);
+    falloff *= falloff * max(strength, 0.0);
+    vec3 halfway = normalize(direction + to_camera);
+    float normal_light = max(dot(normal, direction), 0.0);
+    float normal_halfway = max(dot(normal, halfway), 0.0);
+    float specular_lobe = pow(normal_halfway, shininess);
+    float normalized_specular = specular_lobe * (shininess + 2.0) * 0.07957747;
+    return color * (diffuse_color * normal_light + fresnel * normalized_specular * normal_light * specular_strength) * falloff;
 }
 
 vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
@@ -125,6 +167,26 @@ vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords)
     vec3 fill_diffuse = diffuse_color * fill_normal_light;
     vec3 fill_specular = fresnel * fill_normalized_specular * fill_normal_light * u_specular_strength;
     lit += u_fill_light_color * (fill_diffuse + fill_specular) * u_fill_light_strength;
+    lit += evaluatePointLight(
+        u_point_light_position_0, u_point_light_color_0, u_point_light_strength_0,
+        u_point_light_range_0, normal, to_camera, fresnel, diffuse_color,
+        shininess, u_specular_strength
+    );
+    lit += evaluatePointLight(
+        u_point_light_position_1, u_point_light_color_1, u_point_light_strength_1,
+        u_point_light_range_1, normal, to_camera, fresnel, diffuse_color,
+        shininess, u_specular_strength
+    );
+    lit += evaluatePointLight(
+        u_point_light_position_2, u_point_light_color_2, u_point_light_strength_2,
+        u_point_light_range_2, normal, to_camera, fresnel, diffuse_color,
+        shininess, u_specular_strength
+    );
+    lit += evaluatePointLight(
+        u_point_light_position_3, u_point_light_color_3, u_point_light_strength_3,
+        u_point_light_range_3, normal, to_camera, fresnel, diffuse_color,
+        shininess, u_specular_strength
+    );
     lit += u_emissive;
     return vec4(lit, base.a);
 }

@@ -30,6 +30,10 @@
       "anchor_camera",
       "anchor_camera_target",
       "anchor_fountain",
+      "light_cage_left",
+      "light_cage_right",
+      "light_cage_back",
+      "light_cage_floor",
       "pendant_club",
       "pendant_spade",
       "pendant_heart",
@@ -69,7 +73,7 @@
       ]
     },
     "glb_mesh_count": 13,
-    "glb_node_count": 100,
+    "glb_node_count": 104,
     "triangle_count": 29568
   }
 }

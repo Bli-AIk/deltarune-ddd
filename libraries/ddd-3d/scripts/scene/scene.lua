@@ -35,6 +35,22 @@ local function non_negative_number(value, fallback)
     return math.max(0, value)
 end
 
+local function copy_point_lights(value)
+    local points = {}
+    for index, point in ipairs(value or {}) do
+        if index > 4 or type(point) ~= "table" then
+            break
+        end
+        points[index] = {
+            position = copy_vec3(point.position, { 0, 0, 0 }),
+            color = copy_vec3(point.color, { 0, 0, 0 }),
+            strength = non_negative_number(point.strength, 0),
+            range = math.max(0.001, non_negative_number(point.range, 1)),
+        }
+    end
+    return points
+end
+
 local function apply_node_options(node, options)
     if options.position then node:setPosition(options.position) end
     if options.rotation then node:setRotation(options.rotation) end
@@ -97,6 +113,7 @@ function Scene.new(options)
                     0
                 ),
             },
+            point_lights = copy_point_lights(options.light and options.light.point_lights),
         },
         released = false,
     }, Scene)
@@ -145,6 +162,12 @@ function Scene:setLight(light)
         if light.fill.strength ~= nil then
             self.light.fill.strength = non_negative_number(light.fill.strength, self.light.fill.strength)
         end
+    end
+    if light.point_lights ~= nil then
+        if type(light.point_lights) ~= "table" then
+            return nil, "scene point lights must be an array"
+        end
+        self.light.point_lights = copy_point_lights(light.point_lights)
     end
     return self
 end

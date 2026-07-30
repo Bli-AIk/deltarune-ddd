@@ -5,7 +5,13 @@ local Math3D = libRequire(LIB_ID, "scripts.core.math3d")
 local Renderer = {}
 Renderer.__index = Renderer
 
-local shader_names = { "lit", "emissive", "composite" }
+local shader_names = {
+    "lit",
+    "emissive",
+    "composite",
+    "bloom_extract",
+    "bloom_blur",
+}
 
 local function graphics_ready()
     return love and love.graphics and love.graphics.isActive and love.graphics.isActive()
@@ -172,6 +178,11 @@ function Renderer.new(options)
         msaa = options.msaa,
         texture_cache = {},
         fallback_textures = nil,
+        bloom_a = nil,
+        bloom_b = nil,
+        bloom_width = nil,
+        bloom_height = nil,
+        bloom_unavailable = false,
         released = false,
     }, Renderer)
 end
@@ -240,6 +251,99 @@ function Renderer:_ensureTargets(width, height, options)
     self.pair = pair
     self.color = pair.color
     self.depth = pair.depth
+    return true
+end
+
+local function release_canvas(canvas)
+    if canvas and canvas.release then
+        pcall(canvas.release, canvas)
+    end
+end
+
+function Renderer:_ensureBloomTargets(width, height, options)
+    if self.bloom_unavailable then
+        return nil, "bloom canvases are unavailable"
+    end
+    local bloom = options.bloom or {}
+    local scale = tonumber(bloom.scale) or 0.5
+    scale = math.max(0.25, math.min(0.75, scale))
+    local bloom_width = math.max(1, math.floor(width * scale + 0.5))
+    local bloom_height = math.max(1, math.floor(height * scale + 0.5))
+    if self.bloom_a
+        and self.bloom_b
+        and self.bloom_width == bloom_width
+        and self.bloom_height == bloom_height
+    then
+        return true
+    end
+    if not self.pair or not self.pair.color_format then
+        return nil, "bloom requires an initialized color canvas"
+    end
+    local settings = { format = self.pair.color_format }
+    local ok_a, bloom_a = pcall(love.graphics.newCanvas, bloom_width, bloom_height, settings)
+    if not ok_a then
+        self.bloom_unavailable = true
+        return nil, tostring(bloom_a)
+    end
+    local ok_b, bloom_b = pcall(love.graphics.newCanvas, bloom_width, bloom_height, settings)
+    if not ok_b then
+        release_canvas(bloom_a)
+        self.bloom_unavailable = true
+        return nil, tostring(bloom_b)
+    end
+    bloom_a:setFilter("linear", "linear")
+    bloom_b:setFilter("linear", "linear")
+    release_canvas(self.bloom_a)
+    release_canvas(self.bloom_b)
+    self.bloom_a = bloom_a
+    self.bloom_b = bloom_b
+    self.bloom_width = bloom_width
+    self.bloom_height = bloom_height
+    return true
+end
+
+function Renderer:_renderBloom(options, width, height)
+    local bloom = options.bloom
+    if bloom == false or type(bloom) ~= "table" then
+        return false
+    end
+    local strength = tonumber(bloom.strength) or 0
+    if strength <= 0 then
+        return false
+    end
+    local targets_ok = self:_ensureBloomTargets(width, height, options)
+    if not targets_ok then
+        return false
+    end
+    local bloom_width, bloom_height = self.bloom_width, self.bloom_height
+    love.graphics.push("all")
+    love.graphics.origin()
+    love.graphics.setDepthMode("always", false)
+    love.graphics.setMeshCullMode("none")
+    love.graphics.setBlendMode("replace", "premultiplied")
+    love.graphics.setColor(1, 1, 1, 1)
+
+    love.graphics.setCanvas(self.bloom_a)
+    love.graphics.clear(0, 0, 0, 0)
+    love.graphics.setShader(self.shaders.bloom_extract)
+    send(self.shaders.bloom_extract, "u_threshold", tonumber(bloom.threshold) or 0.35)
+    send(self.shaders.bloom_extract, "u_soft_knee", tonumber(bloom.soft_knee) or 0.16)
+    love.graphics.draw(self.color, 0, 0, 0, bloom_width / width, bloom_height / height)
+
+    local blur_shader = self.shaders.bloom_blur
+    love.graphics.setCanvas(self.bloom_b)
+    love.graphics.clear(0, 0, 0, 0)
+    love.graphics.setShader(blur_shader)
+    send(blur_shader, "u_direction", { 1 / bloom_width, 0 })
+    send(blur_shader, "u_radius", tonumber(bloom.radius) or 1.0)
+    love.graphics.draw(self.bloom_a)
+
+    love.graphics.setCanvas(self.bloom_a)
+    love.graphics.clear(0, 0, 0, 0)
+    send(blur_shader, "u_direction", { 0, 1 / bloom_height })
+    love.graphics.draw(self.bloom_b)
+    love.graphics.setShader()
+    love.graphics.pop()
     return true
 end
 
@@ -413,6 +517,14 @@ function Renderer:_drawRenderable(entry, scene, view_projection)
         { "u_fill_light_color", scene.light.fill.color },
         { "u_fill_light_strength", scene.light.fill.strength },
     }
+    for index = 0, 3 do
+        local point = scene.light.point_lights[index + 1] or {}
+        local suffix = "_" .. tostring(index)
+        uniforms[#uniforms + 1] = { "u_point_light_position" .. suffix, point.position or { 0, 0, 0 } }
+        uniforms[#uniforms + 1] = { "u_point_light_color" .. suffix, point.color or { 0, 0, 0 } }
+        uniforms[#uniforms + 1] = { "u_point_light_strength" .. suffix, point.strength or 0 }
+        uniforms[#uniforms + 1] = { "u_point_light_range" .. suffix, point.range or 1 }
+    end
     for _, uniform in ipairs(uniforms) do
         local ok, err = send(shader, uniform[1], uniform[2], uniform[3])
         if not ok then
@@ -489,6 +601,19 @@ function Renderer:_composite(scene, options, target_canvas, width, height)
         if not sent then return nil, send_err end
         sent, send_err = send(shader, "u_vignette", vignette)
         if not sent then return nil, send_err end
+        local bloom = options.bloom
+        local bloom_enabled = self.bloom_a and type(bloom) == "table" and (tonumber(bloom.strength) or 0) > 0
+        sent, send_err = send(shader, "u_bloom_enabled", bloom_enabled and 1 or 0)
+        if not sent then return nil, send_err end
+        if bloom_enabled then
+            sent, send_err = send(shader, "u_bloom_texture", self.bloom_a)
+            if not sent then return nil, send_err end
+        end
+        sent, send_err = send(shader, "u_bloom_strength", bloom_enabled and (tonumber(bloom.strength) or 0) or 0)
+        if not sent then return nil, send_err end
+        local tint = bloom and bloom.tint or { 0.72, 0.30, 1.0 }
+        sent, send_err = send(shader, "u_bloom_tint", { tint[1] or 0, tint[2] or 0, tint[3] or 0 })
+        if not sent then return nil, send_err end
     else
         love.graphics.setShader()
     end
@@ -549,6 +674,7 @@ function Renderer:draw(scene, options)
         if not rendered then
             error(render_err, 0)
         end
+        self:_renderBloom(options, width, height)
         local composited, composite_err = self:_composite(scene, options, target_canvas, width, height)
         if not composited then
             error(composite_err, 0)
@@ -582,6 +708,10 @@ function Renderer:release()
     self.pair = nil
     self.color = nil
     self.depth = nil
+    release_canvas(self.bloom_a)
+    release_canvas(self.bloom_b)
+    self.bloom_a = nil
+    self.bloom_b = nil
     if self.shaders then
         for _, shader in pairs(self.shaders) do
             release_if_possible(shader)

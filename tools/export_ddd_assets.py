@@ -46,6 +46,10 @@ REQUIRED_NODES = (
     "anchor_camera",
     "anchor_camera_target",
     "anchor_fountain",
+    "light_cage_left",
+    "light_cage_right",
+    "light_cage_back",
+    "light_cage_floor",
     *(f"pendant_{suit}" for suit in SUITS),
     *(f"chain_{suit}" for suit in SUITS),
     *SUITS,
@@ -632,6 +636,10 @@ def verify_authored_scene(document: dict[str, object]) -> None:
         "anchor_camera",
         "anchor_camera_target",
         "anchor_fountain",
+        "light_cage_left",
+        "light_cage_right",
+        "light_cage_back",
+        "light_cage_floor",
         *(f"pendant_{suit}" for suit in SUITS),
     }
     for name in required_root_children:
@@ -652,7 +660,15 @@ def verify_authored_scene(document: dict[str, object]) -> None:
 
     if not descendants_have_mesh(nodes, indices["cage"]):
         raise RuntimeError("'cage' must contain a renderable mesh descendant.")
-    for anchor in ("anchor_camera", "anchor_camera_target", "anchor_fountain"):
+    for anchor in (
+        "anchor_camera",
+        "anchor_camera_target",
+        "anchor_fountain",
+        "light_cage_left",
+        "light_cage_right",
+        "light_cage_back",
+        "light_cage_floor",
+    ):
         if descendants_have_mesh(nodes, indices[anchor]):
             raise RuntimeError(f"'{anchor}' is an anchor and may not contain a mesh.")
 

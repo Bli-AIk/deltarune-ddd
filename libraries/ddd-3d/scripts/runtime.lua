@@ -271,6 +271,36 @@ local function validate_authored_scene(specification, materials)
             )
         end
     end
+    if specification.point_lights ~= nil then
+        local point_count, point_err = validate_dense_array(
+            specification.point_lights,
+            "authored_scene.point_lights"
+        )
+        if not point_count then return nil, point_err end
+        if point_count > 4 then
+            return nil, "authored_scene.point_lights supports at most four lights"
+        end
+        for index = 1, point_count do
+            local point = specification.point_lights[index]
+            local point_path = "authored_scene.point_lights." .. tostring(index)
+            if type(point) ~= "table" or type(point.node) ~= "string" or point.node == "" then
+                return path_error(point_path .. ".node", "must be a non-empty authored node name")
+            end
+            if not required_nodes[point.node] then
+                return path_error(point_path .. ".node", "must reference authored_scene.required_nodes")
+            end
+            local valid, err = validate_vector(point.color, 3, point_path .. ".color", false)
+            if not valid then return nil, err end
+            for _, field in ipairs({ "strength", "range" }) do
+                if point[field] == nil or not finite(point[field]) or point[field] < 0 then
+                    return path_error(point_path .. "." .. field, "must be a non-negative number")
+                end
+            end
+            if point.range <= 0 then
+                return path_error(point_path .. ".range", "must be positive")
+            end
+        end
+    end
     return true
 end
 
@@ -377,6 +407,23 @@ local function validate_output(output, path)
         if not valid then return nil, err end
         if output.fog.strength ~= nil and not finite(output.fog.strength) then
             return path_error(path .. ".fog.strength", "must be a finite number")
+        end
+    end
+    if output.bloom ~= nil and output.bloom ~= false then
+        if type(output.bloom) ~= "table" then
+            return path_error(path .. ".bloom", "must be a table or false")
+        end
+        for _, field in ipairs({ "threshold", "soft_knee", "strength", "radius", "scale" }) do
+            if output.bloom[field] ~= nil and not finite(output.bloom[field]) then
+                return path_error(path .. ".bloom." .. field, "must be a finite number")
+            end
+        end
+        if output.bloom.scale ~= nil and (output.bloom.scale <= 0 or output.bloom.scale > 1) then
+            return path_error(path .. ".bloom.scale", "must be greater than 0 and at most 1")
+        end
+        if output.bloom.tint ~= nil then
+            valid, err = validate_vector(output.bloom.tint, 3, path .. ".bloom.tint", false)
+            if not valid then return nil, err end
         end
     end
     for _, field in ipairs({ "x", "y", "width", "height", "output_width", "output_height", "vignette" }) do
@@ -646,6 +693,34 @@ function Runtime.validateDefinition(definition)
                 if not valid then return nil, err end
                 if definition.scene.light.fill.strength ~= nil and not finite(definition.scene.light.fill.strength) then
                     return nil, "scene.light.fill.strength must be a finite number"
+                end
+            end
+            if definition.scene.light.point_lights ~= nil then
+                local point_count, point_err = validate_dense_array(
+                    definition.scene.light.point_lights,
+                    "scene.light.point_lights"
+                )
+                if not point_count then return nil, point_err end
+                if point_count > 4 then
+                    return nil, "scene.light.point_lights supports at most four lights"
+                end
+                for index = 1, point_count do
+                    local point = definition.scene.light.point_lights[index]
+                    if type(point) ~= "table" then
+                        return nil, "scene.light.point_lights." .. tostring(index) .. " must be a table"
+                    end
+                    valid, err = validate_vector(point.position, 3, "scene.light.point_lights." .. tostring(index) .. ".position", false)
+                    if not valid then return nil, err end
+                    valid, err = validate_vector(point.color, 3, "scene.light.point_lights." .. tostring(index) .. ".color", false)
+                    if not valid then return nil, err end
+                    for _, field in ipairs({ "strength", "range" }) do
+                        if point[field] == nil or not finite(point[field]) or point[field] < 0 then
+                            return nil, "scene.light.point_lights." .. tostring(index) .. "." .. field .. " must be a non-negative number"
+                        end
+                    end
+                    if point.range <= 0 then
+                        return nil, "scene.light.point_lights." .. tostring(index) .. ".range must be positive"
+                    end
                 end
             end
         end
@@ -1014,6 +1089,26 @@ function Runtime:_applyCameraRig(world_context)
     return true
 end
 
+function Runtime:_applyAuthoredLights()
+    if not self.authored_point_lights then
+        return true
+    end
+    local points = {}
+    for index, specification in ipairs(self.authored_point_lights) do
+        local node = self.nodes[specification.node]
+        if not node then
+            return nil, "authored point light node is unavailable: " .. tostring(specification.node)
+        end
+        points[index] = {
+            position = node_world_position(node),
+            color = deep_copy(specification.color),
+            strength = specification.strength,
+            range = specification.range,
+        }
+    end
+    return self.scene:setLight({ point_lights = points })
+end
+
 function Runtime:_applyAuthoredCamera()
     local authored_scene = self.authored_scene
     if not authored_scene then
@@ -1221,6 +1316,7 @@ function Runtime.new(definition, context)
             camera_anchor = cloned_nodes[authored_specification.camera.anchor],
             camera_target = cloned_nodes[authored_specification.camera.target_anchor],
         }
+        runtime.authored_point_lights = deep_copy(authored_specification.point_lights)
         for _, specification in ipairs(authored_specification.motions or {}) do
             local motion_ok, motion_err = add_motion(
                 runtime,
@@ -1326,7 +1422,15 @@ function Runtime:update(dt, world_context)
     if not applied then
         return nil, apply_err
     end
-    return self.scene:update(dt)
+    local updated, scene_err = self.scene:update(dt)
+    if not updated then
+        return nil, scene_err
+    end
+    local lights_applied, lights_err = self:_applyAuthoredLights()
+    if not lights_applied then
+        return nil, lights_err
+    end
+    return true
 end
 
 function Runtime:draw(options)
