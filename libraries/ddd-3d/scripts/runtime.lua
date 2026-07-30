@@ -1205,8 +1205,7 @@ function Runtime:_applyCameraFollow(world_context)
     end
 
     if follow.reference_x == nil then
-        follow.reference_x = camera.x
-        follow.influence = 0
+        return true
     end
 
     local desired = (camera.x - follow.reference_x) / follow.reference_distance
@@ -1512,6 +1511,20 @@ end
 
 function Runtime:getNode(id)
     return self.nodes[id]
+end
+
+function Runtime:setCameraFollowOrigin(camera_x)
+    if self.released then
+        return nil, "runtime has been released"
+    end
+    if not finite(camera_x) then
+        return nil, "camera follow origin must be a finite number"
+    end
+    if self.camera_follow then
+        self.camera_follow.reference_x = camera_x
+        self.camera_follow.influence = 0
+    end
+    return true
 end
 
 function Runtime:update(dt, world_context)

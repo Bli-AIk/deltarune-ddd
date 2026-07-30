@@ -252,7 +252,7 @@ return {
         },
     },
 
-    -- The first 2D camera position received by the runtime is the follow origin;
+    -- The startup 2D camera position supplied by the map controller is the follow origin;
     -- these values only control the subtle 3D response to horizontal travel.
     camera_follow = {
         kind = "camera_x",

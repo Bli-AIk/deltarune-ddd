@@ -106,6 +106,21 @@ function DDDScene:onLoad()
     end
 end
 
+function DDDScene:postLoad()
+    if self.disabled or not self.runtime then
+        return
+    end
+    local world_context, context_err = self:_worldContext()
+    if not world_context then
+        self:_disable(context_err)
+        return
+    end
+    local initialized, init_err = self.runtime:setCameraFollowOrigin(world_context.camera.x)
+    if not initialized then
+        self:_disable(init_err)
+    end
+end
+
 function DDDScene:update()
     super.update(self)
     if self.disabled or not self.runtime then
