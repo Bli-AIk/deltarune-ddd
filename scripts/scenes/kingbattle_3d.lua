@@ -252,10 +252,10 @@ return {
         },
     },
 
-    -- The first player position received by the runtime is the follow origin;
+    -- The first 2D camera position received by the runtime is the follow origin;
     -- these values only control the subtle 3D response to horizontal travel.
     camera_follow = {
-        kind = "player_x",
+        kind = "camera_x",
         reference_distance = 160.0,
         position_offset = { 0.24, 0.00, 0.00 },
         target_offset = { 0.10, 0.00, 0.00 },

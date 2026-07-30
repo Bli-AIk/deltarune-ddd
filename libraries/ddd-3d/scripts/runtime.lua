@@ -494,8 +494,8 @@ local function validate_camera_follow(follow, path)
     if follow == nil then
         return true
     end
-    if type(follow) ~= "table" or follow.kind ~= "player_x" then
-        return path_error(path, "kind must be player_x")
+    if type(follow) ~= "table" or follow.kind ~= "camera_x" then
+        return path_error(path, "kind must be camera_x")
     end
     local valid, err = validate_vector(follow.position_offset, 3, path .. ".position_offset", true)
     if not valid then return nil, err end
@@ -530,14 +530,6 @@ function Runtime.validateWorldContext(context)
     end
     if camera.zoom_x <= 0 or camera.zoom_y <= 0 then
         return nil, "world context camera zoom must be positive"
-    end
-    if context.player ~= nil then
-        if type(context.player) ~= "table"
-            or not finite(context.player.x)
-            or not finite(context.player.y)
-        then
-            return nil, "world context player must contain finite x and y values"
-        end
     end
     return true
 end
@@ -612,14 +604,6 @@ function Runtime.captureWorldContext(world, options)
             width = finite(world.width) and world.width or 0,
             height = finite(world.height) and world.height or 0,
         }
-        if options.include_player and type(world.player) == "table"
-            and finite(world.player.x) and finite(world.player.y)
-        then
-            context.player = {
-                x = world.player.x,
-                y = world.player.y,
-            }
-        end
     end
     return context
 end
@@ -1215,17 +1199,17 @@ end
 
 function Runtime:_applyCameraFollow(world_context)
     local follow = self.camera_follow
-    local player = world_context and world_context.player
-    if not follow or not player or not self.authored_camera_position or not self.authored_camera_target then
+    local camera = world_context and world_context.camera
+    if not follow or not camera or not self.authored_camera_position or not self.authored_camera_target then
         return true
     end
 
     if follow.reference_x == nil then
-        follow.reference_x = player.x
+        follow.reference_x = camera.x
         follow.influence = 0
     end
 
-    local desired = (player.x - follow.reference_x) / follow.reference_distance
+    local desired = (camera.x - follow.reference_x) / follow.reference_distance
     if follow.smoothing <= 0 or self.last_dt <= 0 then
         follow.influence = desired
     else

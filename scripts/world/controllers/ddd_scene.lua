@@ -87,7 +87,6 @@ function DDDScene:_worldContext()
     end
     return self.library.captureWorldContext(self.world, {
         include_effects = false,
-        include_player = true,
     })
 end
 
