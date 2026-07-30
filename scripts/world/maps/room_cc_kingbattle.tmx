@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.11" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="50" height="10" tilewidth="40" tileheight="40" infinite="0" nextlayerid="10" nextobjectid="45">
+<map version="1.11" tiledversion="1.12.2" orientation="orthogonal" renderorder="right-down" width="50" height="10" tilewidth="40" tileheight="40" infinite="0" nextlayerid="10" nextobjectid="47">
  <editorsettings>
   <export target="room_cc_kingbattle.lua" format="lua"/>
  </editorsettings>
@@ -32,6 +32,7 @@
   <object id="39" gid="41" x="600" y="560" width="640" height="444"/>
   <object id="43" gid="11" x="0" y="560" width="615" height="160"/>
   <object id="44" gid="11" x="1226" y="560" width="774" height="160"/>
+  <object id="45" gid="42" x="750" y="170" width="350" height="90"/>
  </objectgroup>
  <objectgroup id="7" name="objects_party"/>
  <objectgroup color="#0000ff" id="4" name="collision">
