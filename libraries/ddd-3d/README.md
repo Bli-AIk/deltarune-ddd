@@ -157,6 +157,10 @@ optional, clamped `0..1` controls; both default to values that keep metal
 legible in a low-key scene. The camel-case aliases `specularStrength` and
 `ambientReflection` are accepted when a project uses that convention.
 
+`base_color` / `baseColor` and `emissive` accept either the existing numeric
+color arrays or hex strings: `#RGB`, `#RGBA`, `#RRGGBB`, and `#RRGGBBAA`.
+Alpha is used by `base_color`; `emissive` uses only RGB.
+
 Material maps can be declared globally in `materials`, referenced by instance
 material id, or used as `assets.<id>.material_overrides.<gltf_material_name>`.
 For a Blender-authored scene, map each source material name exactly once:

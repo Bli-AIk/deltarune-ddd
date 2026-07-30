@@ -103,6 +103,16 @@ local function validate_vector(value, count, path, optional)
     return true
 end
 
+local function validate_color(value, count, path, optional)
+    if type(value) == "string" then
+        if Material.isHexColor(value) then
+            return true
+        end
+        return path_error(path, "must be a valid hex color such as #RRGGBB or #RRGGBBAA")
+    end
+    return validate_vector(value, count, path, optional)
+end
+
 local function validate_transform(transform, path)
     if transform == nil then
         return true
@@ -130,9 +140,9 @@ local function validate_material_spec(material, path)
     if material.shader ~= nil and (type(material.shader) ~= "string" or not MATERIAL_SHADERS[material.shader]) then
         return path_error(path .. ".shader", "must be lit or emissive")
     end
-    local valid, err = validate_vector(material.base_color or material.baseColor, 4, path .. ".base_color", true)
+    local valid, err = validate_color(material.base_color or material.baseColor, 4, path .. ".base_color", true)
     if not valid then return nil, err end
-    valid, err = validate_vector(material.emissive, 3, path .. ".emissive", true)
+    valid, err = validate_color(material.emissive, 3, path .. ".emissive", true)
     if not valid then return nil, err end
     for _, field in ipairs({
         "metallic",

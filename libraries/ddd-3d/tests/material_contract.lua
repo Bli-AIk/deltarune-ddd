@@ -155,6 +155,22 @@ assert(sent.u_ambient_reflection == 0)
 assert(sent.u_normal_strength == 0.25)
 assert(sent.u_uv_scale[1] == 2 and sent.u_uv_scale[2] == 3)
 
+local hex_material = assert(Material.new({
+    base_color = "#12345678",
+    emissive = "#ABC",
+}))
+assert(math.abs(hex_material.base_color[1] - 0x12 / 255) < 0.00001)
+assert(math.abs(hex_material.base_color[2] - 0x34 / 255) < 0.00001)
+assert(math.abs(hex_material.base_color[3] - 0x56 / 255) < 0.00001)
+assert(math.abs(hex_material.base_color[4] - 0x78 / 255) < 0.00001)
+assert(math.abs(hex_material.emissive[1] - 0xAA / 255) < 0.00001)
+assert(math.abs(hex_material.emissive[2] - 0xBB / 255) < 0.00001)
+assert(math.abs(hex_material.emissive[3] - 0xCC / 255) < 0.00001)
+assert(Material.isHexColor("#123456"))
+assert(Material.isHexColor("#1234"))
+assert(not Material.isHexColor("#12345"))
+assert(hex_material:release())
+
 local resolved = assert(Material.resolveTexturePaths({
     normalMap = "normal.jpg",
     roughnessTexture = "roughness.jpg",
@@ -324,6 +340,13 @@ local function definition()
 end
 
 assert(Runtime.validateDefinition(definition()))
+local hex_definition = definition()
+hex_definition.materials.purple_outline.baseColor = "#B319E6"
+hex_definition.materials.purple_outline.emissive = "#6A00FF"
+assert(Runtime.validateDefinition(hex_definition))
+hex_definition.materials.purple_outline.baseColor = "#12345"
+local valid_hex_definition, hex_definition_err = Runtime.validateDefinition(hex_definition)
+assert(not valid_hex_definition and hex_definition_err:find("hex color", 1, true))
 local runtime = assert(Runtime.new(definition(), { asset_root = "/fixture-assets" }))
 local runtime_outline = runtime.models.authored_scene.materials[1]
 local runtime_fill = runtime.models.authored_scene.materials[2]

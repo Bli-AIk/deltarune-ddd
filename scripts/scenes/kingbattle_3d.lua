@@ -69,8 +69,9 @@ return {
         suit_edge = {
             name = "kingbattle_suit_edge",
             shader = "lit",
-            base_color = { 0.34, 0.018, 0.88, 1.0 },
-            emissive = { 0.62, 0.012, 1.45 },
+            -- These may be written as "#RRGGBB" or "#RRGGBBAA" while tuning.
+            base_color = "#512E88",
+            emissive = "#5A4DA0",
             metallic = 0.30,
             roughness = 0.18,
             double_sided = true,

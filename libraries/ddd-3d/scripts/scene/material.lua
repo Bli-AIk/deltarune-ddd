@@ -40,8 +40,51 @@ local function clamped_number(value, fallback, minimum, maximum)
     return math.max(minimum, math.min(maximum, value))
 end
 
+local function parse_hex_color(value, channels)
+    if type(value) ~= "string" then
+        return nil
+    end
+    local hex = value
+    if hex:sub(1, 1) == "#" then
+        hex = hex:sub(2)
+    end
+    if not hex:match("^%x+$") then
+        return nil
+    end
+    if #hex == 3 or #hex == 4 then
+        local expanded = {}
+        for index = 1, #hex do
+            local digit = hex:sub(index, index)
+            expanded[#expanded + 1] = digit .. digit
+        end
+        hex = table.concat(expanded)
+    elseif #hex ~= 6 and #hex ~= 8 then
+        return nil
+    end
+
+    local result = {
+        tonumber(hex:sub(1, 2), 16) / 255,
+        tonumber(hex:sub(3, 4), 16) / 255,
+        tonumber(hex:sub(5, 6), 16) / 255,
+    }
+    if channels == 4 then
+        result[4] = (#hex == 8 and tonumber(hex:sub(7, 8), 16) / 255) or 1
+    end
+    return result
+end
+
 local function color(value, fallback)
+    if type(value) == "string" then
+        local parsed = parse_hex_color(value, 4)
+        if not parsed then
+            return nil, "color must be a hex string such as #RRGGBB or #RRGGBBAA"
+        end
+        return parsed
+    end
     value = value or fallback
+    if type(value) ~= "table" then
+        return nil, "color must be a color table or hex string"
+    end
     return {
         tonumber(value[1]) or 1,
         tonumber(value[2]) or 1,
@@ -51,7 +94,17 @@ local function color(value, fallback)
 end
 
 local function vec3(value, fallback)
+    if type(value) == "string" then
+        local parsed = parse_hex_color(value, 3)
+        if not parsed then
+            return nil, "color must be a hex string such as #RRGGBB"
+        end
+        return parsed
+    end
     value = value or fallback
+    if type(value) ~= "table" then
+        return nil, "color must be a color table or hex string"
+    end
     return {
         tonumber(value[1]) or 0,
         tonumber(value[2]) or 0,
@@ -146,11 +199,19 @@ function Material.new(options)
         "roughness_texture"
     )
     if texture_err then return nil, texture_err end
+    local base_color, base_color_err = color(options.base_color or options.baseColor, { 1, 1, 1, 1 })
+    if not base_color then
+        return nil, "base_color: " .. tostring(base_color_err)
+    end
+    local emissive, emissive_err = vec3(options.emissive, { 0, 0, 0 })
+    if not emissive then
+        return nil, "emissive: " .. tostring(emissive_err)
+    end
     return setmetatable({
         name = options.name or "material",
         shader = options.shader or "lit",
-        base_color = color(options.base_color or options.baseColor, { 1, 1, 1, 1 }),
-        emissive = vec3(options.emissive, { 0, 0, 0 }),
+        base_color = base_color,
+        emissive = emissive,
         metallic = clamped_number(options.metallic, 0, 0, 1),
         roughness = clamped_number(options.roughness, 0.75, 0.04, 1),
         specular_strength = clamped_number(
@@ -277,6 +338,13 @@ function Material.validateTexturePaths(options)
         end
     end
     return true
+end
+
+--- Returns whether value uses one of the supported hex color formats.
+---@param value any
+---@return boolean
+function Material.isHexColor(value)
+    return parse_hex_color(value, 4) ~= nil
 end
 
 function Material:apply(shader)
