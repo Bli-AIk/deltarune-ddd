@@ -54,26 +54,26 @@
       "suit_edge",
       "suit_fill"
     ],
-    "vertex_count": 35077,
+    "vertex_count": 35581,
     "local_bounds": {
       "min": [
-        -14.4,
+        -14.82,
         -20.200001,
-        -9.900001
+        -10.156
       ],
       "max": [
-        14.4,
+        14.82,
         4.200002,
         13.500002
       ],
       "size": [
-        28.799999,
+        29.639999,
         24.400002,
-        23.400002
+        23.656002
       ]
     },
-    "glb_mesh_count": 13,
-    "glb_node_count": 104,
-    "triangle_count": 29568
+    "glb_mesh_count": 22,
+    "glb_node_count": 113,
+    "triangle_count": 30540
   }
 }

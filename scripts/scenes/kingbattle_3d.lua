@@ -53,12 +53,12 @@ return {
         background_wall = {
             name = "kingbattle_background_wall",
             shader = "lit",
-            base_color = { 0.095, 0.12, 0.25, 1.0 },
-            emissive = { 0.014, 0.022, 0.060 },
+            base_color = { 0.030, 0.012, 0.095, 1.0 },
+            emissive = { 0.002, 0.0005, 0.014 },
             metallic = 0.08,
             roughness = 0.86,
             specular_strength = 0.15,
-            ambient_reflection = 0.28,
+            ambient_reflection = 0.14,
             base_color_texture = metal_surface.albedo,
             normal_texture = metal_surface.normal,
             roughness_texture = metal_surface.roughness,
@@ -134,25 +134,25 @@ return {
         point_lights = {
             {
                 node = "light_cage_left",
-                color = { 0.20, 0.28, 0.90 },
+                color = { 0.14, 0.08, 0.52 },
                 strength = 2.8,
                 range = 24.0,
             },
             {
                 node = "light_cage_right",
-                color = { 0.42, 0.16, 1.00 },
+                color = { 0.30, 0.08, 0.72 },
                 strength = 2.4,
                 range = 24.0,
             },
             {
                 node = "light_cage_back",
-                color = { 0.08, 0.15, 0.52 },
+                color = { 0.045, 0.055, 0.28 },
                 strength = 1.8,
                 range = 22.0,
             },
             {
                 node = "light_cage_floor",
-                color = { 0.22, 0.16, 0.62 },
+                color = { 0.15, 0.07, 0.38 },
                 strength = 1.1,
                 range = 18.0,
             },
@@ -252,7 +252,7 @@ return {
     },
 
     scene = {
-        clear_color = { 0.002, 0.004, 0.014, 1.0 },
+        clear_color = { 0.006, 0.001, 0.016, 1.0 },
         light = {
             -- The authored key ray runs from the upper-left, camera-facing
             -- side into the cage. Directions are ray travel, while the shader
@@ -269,9 +269,9 @@ return {
     },
 
     output = {
-        clear_color = { 0.002, 0.004, 0.014, 1.0 },
+        clear_color = { 0.006, 0.001, 0.016, 1.0 },
         fog = {
-            color = { 0.008, 0.014, 0.045 },
+            color = { 0.010, 0.003, 0.030 },
             strength = 0.095,
         },
         vignette = 0.22,
