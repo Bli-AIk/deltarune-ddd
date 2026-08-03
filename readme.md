@@ -1,4 +1,4 @@
-<h1 align="center">deltarune distant, divergent dream</h1>
+<h1 align="center">deltarune-ddd-ch1</h1>
 
 <h3 align="center">
 重构想 <a href="https://deltarune.com">deltarune</a>.

@@ -1,4 +1,4 @@
-<h1 align="center">deltarune distant, divergent dream</h1>
+<h1 align="center">deltarune-ddd-ch1</h1>
 
 <h3 align="center">
 A Reimagining of <a href="https://deltarune.com">deltarune</a>.
@@ -251,7 +251,7 @@ alternate universe
 ```text
 标题那块你稍微改改
 
-不是 remagining deltarune。而是deltarune distant, divergent dream - A Reimagining of deltarune. ——这是我写到github的简介。
+不是 remagining deltarune。而是deltarune-ddd-ch1 - A Reimagining of deltarune. ——这是我写到github的简介。
 呃这语法应该没问题吧
 ```
 
