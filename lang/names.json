@@ -11,10 +11,6 @@
         "en": "Ralsei",
         "zh_hans": "利艾尔斯"
     },
-    "raisel": {
-        "en": "Ralsei",
-        "zh_hans": "利艾尔斯"
-    },
     "noelle": {
         "en": "Noelle",
         "zh_hans": "诺艾尔"
@@ -22,5 +18,5 @@
     "dummy": {
         "en": "Dummy",
         "zh_hans": "训练人偶"
-    },
+    }
 }
