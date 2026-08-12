@@ -21,7 +21,7 @@ jobs:
           set -euo pipefail
           git submodule status --recursive
           test -s libraries/kristal-i18n/lib.lua
-          test -s libraries/object-editor/lib.lua
+          test -s libraries/kristal-object-selector-plus/lib.lua
           test -s libraries/terminal-cli/lib.lua
           test -s libraries/kristal-debug-tools/lib.lua
       - name: Install build dependencies
@@ -51,7 +51,7 @@ jobs:
             unzip -t "$file" >/dev/null
           done
           unzip -Z1 dist/deltarune-ddd-ch1-mod.zip | grep -Fx mod.json >/dev/null
-          test -z "$(unzip -Z1 dist/deltarune-ddd-ch1-mod.zip | grep '^libraries/object-editor/' || true)"
+          test -z "$(unzip -Z1 dist/deltarune-ddd-ch1-mod.zip | grep '^libraries/kristal-object-selector-plus/' || true)"
           test -z "$(unzip -Z1 dist/deltarune-ddd-ch1-mod.zip | grep '^libraries/terminal-cli/' || true)"
           test -z "$(unzip -Z1 dist/deltarune-ddd-ch1-mod.zip | grep '^libraries/kristal-debug-tools/' || true)"
       - name: Generate and verify SHA-256 manifest

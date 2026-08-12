@@ -60,7 +60,7 @@ def patch_mod_manifest(args: argparse.Namespace) -> None:
     text = replace_once(text, r'("dev"\s*:\s*)(true|false)', rf"\g<1>{args.dev}", manifest)
     text = replace_once(
         text,
-        r'("object-editor"\s*:\s*\{.*?"enabled"\s*:\s*)(true|false)',
+        r'("kristal-object-selector-plus"\s*:\s*\{.*?"enabled"\s*:\s*)(true|false)',
         rf"\g<1>{args.object_editor}",
         manifest,
         flags=re.S,

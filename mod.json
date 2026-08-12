@@ -71,7 +71,7 @@
                 "zh_hans": "简体中文"
             }
         },
-        "object-editor": {
+        "kristal-object-selector-plus": {
             "enabled": true,
             "snap_grid": 1,
             "snap_angle": 5,
