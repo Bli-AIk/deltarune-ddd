@@ -1,7 +1,7 @@
 {
     "id": "virtualkeyboard",
     "version": "v0.1.0",
-    "engineVer": "v0.10.0",
+    "engineVer": "v0.11.0-dev",
     "authors": ["zzy", "Bli-AIk"],
     "config": {
         "enabled": true,
