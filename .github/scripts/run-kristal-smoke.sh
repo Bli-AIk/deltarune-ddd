@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-: "${KRISTAL:?set KRISTAL to a clean Kristal v0.10 checkout}"
+: "${KRISTAL:?set KRISTAL to a clean Kristal v0.11.0-dev checkout}"
 
 root=$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd -P)
 mod_id=deltarune-ddd-ch1

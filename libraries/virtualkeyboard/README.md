@@ -1,6 +1,6 @@
 # Kristal virtualkeyboard
 
-This is an optional Kristal v0.10 library for Android builds. It provides a
+This is an optional Kristal v0.11 library for Android builds. It provides a
 touch joystick or button layout that feeds normal Kristal `Input` key events.
 
 The library is enabled by default only when `love.system.getOS()` returns
