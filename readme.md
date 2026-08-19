@@ -156,7 +156,7 @@ deltarune 原作，某些程度上是极简主义的。至少我印象里还记�
 
 所以，现在先把后端切到 `Kristal`。少造点轮子，多做点内容。
 
-开发环境通过子模块提供简体中文语言库、object-editor 场景编辑器和 terminal-cli
+开发环境通过子模块提供简体中文语言库、kristal-object-selector-plus 场景编辑器和 terminal-cli
 交互式调试控制台；后两者只在 dev mode 使用，不属于发布内容。
 
 <details>

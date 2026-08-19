@@ -100,7 +100,7 @@ copy_mod() {
         "$DELTARUNE_DDD_CH1_MOD_DIR/" "$stage_mod/"
 
     if [ "$variant" = "release" ]; then
-        rm -rf "$stage_mod/libraries/object-editor"
+        rm -rf "$stage_mod/libraries/kristal-object-selector-plus"
         rm -rf "$stage_mod/libraries/terminal-cli"
         rm -rf "$stage_mod/libraries/kristal-debug-tools"
     fi

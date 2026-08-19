@@ -1,6 +1,6 @@
-[submodule "libraries/object-editor"]
-	path = libraries/object-editor
-	url = https://github.com/Bli-AIk/object-editor.git
+[submodule "libraries/kristal-object-selector-plus"]
+	path = libraries/kristal-object-selector-plus
+	url = https://github.com/Bli-AIk/kristal-object-selector-plus.git
 [submodule "libraries/kristal-i18n"]
 	path = libraries/kristal-i18n
 	url = https://github.com/Bli-AIk/kristal-i18n.git

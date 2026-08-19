@@ -41,7 +41,7 @@ jobs:
           set -euo pipefail
           git submodule status --recursive
           test -s libraries/kristal-i18n/lib.lua
-          test -s libraries/object-editor/lib.lua
+          test -s libraries/kristal-object-selector-plus/lib.lua
           test -s libraries/terminal-cli/lib.lua
       - name: Install build dependencies
         run: |
