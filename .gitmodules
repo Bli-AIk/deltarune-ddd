@@ -1,9 +1,11 @@
 [submodule "libraries/kristal-object-selector-plus"]
 	path = libraries/kristal-object-selector-plus
 	url = https://github.com/Bli-AIk/kristal-object-selector-plus.git
+	branch = main
 [submodule "libraries/kristal-i18n"]
 	path = libraries/kristal-i18n
 	url = https://github.com/Bli-AIk/kristal-i18n.git
+	branch = main
 [submodule ".emacs"]
 	path = .emacs
 	url = https://github.com/Bli-AIk/kristal-emacs-config.git
@@ -14,6 +16,8 @@
 [submodule "libraries/terminal-cli"]
 	path = libraries/terminal-cli
 	url = https://github.com/Bli-AIk/kristal-terminal-cli.git
+	branch = main
 [submodule "libraries/kristal-debug-tools"]
 	path = libraries/kristal-debug-tools
 	url = https://github.com/Bli-AIk/kristal-debug-tools.git
+	branch = main
