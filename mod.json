@@ -9,12 +9,12 @@
     // The version of your project.
     "version": "v0.0.0", // x-release-please-version
     // What version of the engine your project was made with.
-    "engineVer": "v0.10.0",
+    "engineVer": "v0.11.0-dev",
 
     // The Deltarune chapter you'd like to base your project off of.
     // Do keep in mind that you can control chapter-specific features
     // one by one using the config below.
-    "chapter": 4,
+    "chapter": 1,
 
     // The map that you start in when first starting the project.
     "map": "room_cc_kingbattle",
@@ -22,8 +22,8 @@
     // The party. The first character is the player.
     "party": ["kris", "susie", "ralsei"],
 
-    // The inventory. Contains three darkburgers, a cell phone and a shadow crystal by default.
-    "inventory": {
+    // The dark-world inventory. Contains three darkburgers, a cell phone and a shadow crystal by default.
+    "darkInventory": {
         "items": ["glowshard", "darkburger", "darkburger", "darkburger"],
         "key_items": ["cell_phone", "shadowcrystal"]
     },
