@@ -1,0 +1,242 @@
+#!/usr/bin/env python3
+"""One-time Blender workspace cleanup for the King Battle scene.
+
+This archived migration separates the supplied source-model scene from the
+editable DDD layout. It does not change any DDD object transforms: Blender
+keeps its native Z-up authoring coordinates and the runtime loader performs
+the single documented Blender-to-renderer conversion.
+"""
+
+from __future__ import annotations
+
+import math
+
+import bpy
+from mathutils import Matrix
+
+
+LAYOUT_COLLECTION = "DDD_KINGBATTLE"
+AUTHORING_SCENE = "DDD_KINGBATTLE_AUTHORING"
+SOURCE_SCENE = "DDD_SOURCE_REFERENCE"
+GUIDES_COLLECTION = "DDD_AUTHORING_GUIDES"
+EDITOR_CAMERA = "DDD_AUTHORING_CAMERA"
+ROOT_OBJECT = "DDD_SCENE_ROOT"
+COORDINATE_SPACE = "blender_z_up"
+SOURCE_COLLECTIONS = (
+    "Collection",
+    "cage",
+    "chain",
+    "Anglo-American_card_suits.svg",
+)
+SUITS = ("club", "spade", "heart", "diamond")
+RUNTIME_FOV = math.radians(45.0)
+AUTHORING_REBASE = Matrix.Rotation(math.pi, 4, "X")
+
+
+def require_object(name: str) -> bpy.types.Object:
+    object_ = bpy.data.objects.get(name)
+    if object_ is None:
+        raise RuntimeError(f"Missing required King Battle object '{name}'.")
+    return object_
+
+
+def ensure_scene(name: str) -> bpy.types.Scene:
+    return bpy.data.scenes.get(name) or bpy.data.scenes.new(name)
+
+
+def ensure_root_collection(
+    scene: bpy.types.Scene,
+    name: str,
+) -> bpy.types.Collection:
+    collection = bpy.data.collections.get(name)
+    if collection is None:
+        collection = bpy.data.collections.new(name)
+    if scene.collection.children.get(collection.name) is None:
+        scene.collection.children.link(collection)
+    return collection
+
+
+def ensure_child_collection(
+    parent: bpy.types.Collection,
+    name: str,
+) -> bpy.types.Collection:
+    collection = bpy.data.collections.get(name)
+    if collection is None:
+        collection = bpy.data.collections.new(name)
+    if parent.children.get(collection.name) is None:
+        parent.children.link(collection)
+    return collection
+
+
+def move_source_collections(
+    authoring_scene: bpy.types.Scene,
+    source_scene: bpy.types.Scene,
+) -> None:
+    for name in SOURCE_COLLECTIONS:
+        collection = bpy.data.collections.get(name)
+        if collection is None:
+            continue
+        if authoring_scene.collection.children.get(collection.name) is not None:
+            authoring_scene.collection.children.unlink(collection)
+        if source_scene.collection.children.get(collection.name) is None:
+            source_scene.collection.children.link(collection)
+
+    source_camera = bpy.data.objects.get("Camera")
+    if source_camera is not None and source_camera.type == "CAMERA":
+        source_scene.camera = source_camera
+
+
+def pendant_for(object_: bpy.types.Object) -> str | None:
+    current = object_
+    while current is not None:
+        if current.name.startswith("pendant_"):
+            return current.name.removeprefix("pendant_")
+        current = current.parent
+    return None
+
+
+def relink(object_: bpy.types.Object, target: bpy.types.Collection) -> None:
+    if target not in object_.users_collection:
+        target.objects.link(object_)
+    for collection in list(object_.users_collection):
+        if collection != target and collection.name.startswith("DDD_"):
+            collection.objects.unlink(object_)
+
+
+def organize_layout(layout: bpy.types.Collection) -> None:
+    root = require_object(ROOT_OBJECT)
+    environment = ensure_child_collection(layout, "DDD_01_ENVIRONMENT")
+    cage = ensure_child_collection(layout, "DDD_02_CAGE")
+    pendants = ensure_child_collection(layout, "DDD_03_PENDANTS")
+    anchors = ensure_child_collection(layout, "DDD_04_ANCHORS")
+    suit_collections = {
+        suit: ensure_child_collection(pendants, f"DDD_03_{suit.upper()}")
+        for suit in SUITS
+    }
+
+    for object_ in list(layout.all_objects):
+        if object_ == root:
+            relink(object_, layout)
+            continue
+        if object_.name in {
+            "anchor_camera",
+            "anchor_camera_target",
+            "anchor_fountain",
+        }:
+            relink(object_, anchors)
+            continue
+        if object_.name == "environment_shell":
+            relink(object_, environment)
+            continue
+        if object_.name == "cage" or object_.name.startswith("cage_mesh_"):
+            relink(object_, cage)
+            continue
+        suit = pendant_for(object_)
+        if suit in suit_collections:
+            relink(object_, suit_collections[suit])
+            continue
+        raise RuntimeError(f"Cannot assign '{object_.name}' to an authoring collection.")
+
+
+def rebase_authoring_axes(layout: bpy.types.Collection) -> None:
+    """Put the existing layout into normal Blender authoring orientation.
+
+    The old bootstrap wrote glTF-space values back into Blender. That left the
+    scene visually inverted: the camera faced +Y and the hanging props lived
+    below the authoring horizon. Rotate the authored root children once so
+    Blender's usual -Y-forward, +Z-up view becomes the source of truth. The
+    loader converts that native basis at runtime; this is not a render-side
+    compensation transform.
+    """
+    root = require_object(ROOT_OBJECT)
+    current_space = layout.get("ddd_coordinate_space")
+    if current_space == COORDINATE_SPACE:
+        return
+    if current_space is not None:
+        raise RuntimeError(
+            f"'{LAYOUT_COLLECTION}' has unexpected ddd_coordinate_space={current_space!r}."
+        )
+
+    for child in root.children:
+        child.matrix_local = AUTHORING_REBASE @ child.matrix_local
+
+    layout["ddd_coordinate_space"] = COORDINATE_SPACE
+    layout["ddd_axis_contract"] = "X/right, -Y/forward, Z/up"
+    root["ddd_coordinate_space"] = COORDINATE_SPACE
+    root["ddd_axis_contract"] = "Blender native authoring root"
+
+
+def ensure_editor_camera(
+    scene: bpy.types.Scene,
+    guides: bpy.types.Collection,
+) -> bpy.types.Object:
+    existing = bpy.data.objects.get(EDITOR_CAMERA)
+    if existing is not None and existing.type != "CAMERA":
+        raise RuntimeError(f"'{EDITOR_CAMERA}' exists but is not a camera.")
+    if existing is None:
+        camera_data = bpy.data.cameras.new(EDITOR_CAMERA)
+        existing = bpy.data.objects.new(EDITOR_CAMERA, camera_data)
+        guides.objects.link(existing)
+    elif guides not in existing.users_collection:
+        guides.objects.link(existing)
+
+    anchor = require_object("anchor_camera")
+    target = require_object("anchor_camera_target")
+    direction = target.matrix_world.translation - anchor.matrix_world.translation
+    if direction.length_squared <= 0.0:
+        raise RuntimeError("Camera anchor and target must not share a position.")
+
+    existing.location = anchor.matrix_world.translation
+    existing.rotation_mode = "XYZ"
+    existing.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
+    existing.data.sensor_fit = "VERTICAL"
+    existing.data.lens = existing.data.sensor_height / (2.0 * math.tan(RUNTIME_FOV * 0.5))
+    existing["ddd_role"] = "editor_camera"
+    existing["ddd_export"] = False
+    scene.camera = existing
+    return existing
+
+
+def verify_root_transform() -> None:
+    root = require_object(ROOT_OBJECT)
+    if root.parent is not None:
+        raise RuntimeError(f"'{ROOT_OBJECT}' must remain a world root.")
+    if (
+        root.location.length_squared > 1e-10
+        or sum(component * component for component in root.rotation_euler) > 1e-10
+        or any(abs(component - 1.0) > 1e-6 for component in root.scale)
+    ):
+        raise RuntimeError(f"'{ROOT_OBJECT}' must keep an identity transform.")
+
+
+def main() -> None:
+    layout = bpy.data.collections.get(LAYOUT_COLLECTION)
+    if layout is None:
+        raise RuntimeError(f"Missing '{LAYOUT_COLLECTION}'.")
+
+    authoring_scene = bpy.context.scene
+    authoring_scene.name = AUTHORING_SCENE
+    source_scene = ensure_scene(SOURCE_SCENE)
+    move_source_collections(authoring_scene, source_scene)
+    if authoring_scene.collection.children.get(layout.name) is None:
+        authoring_scene.collection.children.link(layout)
+
+    organize_layout(layout)
+    rebase_authoring_axes(layout)
+    # `rebase_authoring_axes` changes parent matrices. Refresh before reading
+    # anchor.matrix_world to align the editor camera to the saved rest pose.
+    bpy.context.view_layer.update()
+    guides = ensure_root_collection(authoring_scene, GUIDES_COLLECTION)
+    ensure_editor_camera(authoring_scene, guides)
+    verify_root_transform()
+
+    bpy.context.window.scene = authoring_scene
+    bpy.ops.wm.save_mainfile()
+    print(
+        "Normalized King Battle layout: source scene separated, "
+        "authoring collections organized, and editor camera aligned to anchors."
+    )
+
+
+if __name__ == "__main__":
+    main()

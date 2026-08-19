@@ -1,0 +1,79 @@
+{
+  "format_version": 2,
+  "source_blend": "kingbattle_layout.blend",
+  "blender_version": "5.2.0 LTS",
+  "coordinate_system": {
+    "format": "glTF 2.0 binary (.glb)",
+    "handedness": "right",
+    "source_coordinate_space": "blender_z_up",
+    "source_right": "+X",
+    "source_forward": "-Y",
+    "source_up": "+Z",
+    "runtime_right": "+X",
+    "runtime_forward": "-Z",
+    "runtime_up": "+Y",
+    "runtime_conversion": "B(x, y, z) -> E(x, -z, -y)",
+    "loader_option": "coordinate_space=blender_z_up",
+    "units": "Blender scene units",
+    "asset_origin": "DDD_SCENE_ROOT",
+    "scene_layout": "Blender collection hierarchy"
+  },
+  "authored_scene": {
+    "file": "kingbattle_scene.glb",
+    "collection": "DDD_KINGBATTLE",
+    "coordinate_space": "blender_z_up",
+    "root": "DDD_SCENE_ROOT",
+    "required_nodes": [
+      "DDD_SCENE_ROOT",
+      "environment_shell",
+      "cage",
+      "anchor_camera",
+      "anchor_camera_target",
+      "anchor_fountain",
+      "light_cage_left",
+      "light_cage_right",
+      "light_cage_back",
+      "light_cage_floor",
+      "pendant_club",
+      "pendant_spade",
+      "pendant_heart",
+      "pendant_diamond",
+      "chain_club",
+      "chain_spade",
+      "chain_heart",
+      "chain_diamond",
+      "club",
+      "spade",
+      "heart",
+      "diamond"
+    ],
+    "material_names": [
+      "background_wall",
+      "cage_metal",
+      "chain_metal",
+      "suit_edge",
+      "suit_fill"
+    ],
+    "vertex_count": 35581,
+    "local_bounds": {
+      "min": [
+        -14.82,
+        -20.200001,
+        -10.156
+      ],
+      "max": [
+        14.82,
+        4.200002,
+        13.500002
+      ],
+      "size": [
+        29.639999,
+        24.400002,
+        23.656002
+      ]
+    },
+    "glb_mesh_count": 22,
+    "glb_node_count": 113,
+    "triangle_count": 30540
+  }
+}
