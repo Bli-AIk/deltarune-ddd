@@ -761,6 +761,11 @@ function lib:init()
         print("[virtualkeyboard] No controls could be loaded; library disabled")
         return
     end
+    -- Keep startup announcements localizable by kristal-i18n.
+    if Logging and Logging.info then
+        Logging.info("Enabled library " .. self.info.id .. ".")
+    end
+
     self:install_hooks()
 end
 

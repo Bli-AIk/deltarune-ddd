@@ -1,0 +1,104 @@
+name: Start script
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  start-script:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Run tools/start.ps1 on a temporary copy and verify
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Get-RootTracked([string]$Pattern) {
+            @(& git ls-files) | Where-Object { -not $_.Contains('/') -and $_ -like $Pattern }
+          }
+
+          # Copy the checkout (including .git and submodule .git dirs) into a
+          # temporary directory, so the script mutates a copy, not the checkout.
+          $tmp = Join-Path $env:RUNNER_TEMP 'start-script-test'
+          New-Item -ItemType Directory -Force -Path $tmp | Out-Null
+          tar -cf - -C $PWD --exclude='./.build' --exclude='./dist' --exclude='./.tools' . |
+            tar -xf - -C $tmp
+
+          Push-Location $tmp
+          try {
+            # Derived projects do not all carry the template's files -- a
+            # README-only project has no tiled project, release manifest or
+            # changelog -- so note down what this repo actually has and assert
+            # against that instead of against the template's file list.
+            $oldTiled = @(Get-RootTracked '*.tiled-project') | Select-Object -First 1
+            $hadManifest = Test-Path '.release-please-manifest.json'
+
+            & .\tools\start.ps1 --name 'CI Test Game' --yes
+            if ($LASTEXITCODE -ne 0) {
+              throw "tools/start.ps1 exited with code $LASTEXITCODE"
+            }
+
+            $modJson = Get-Content -Raw mod.json
+            if ($modJson -notmatch '"id"\s*:\s*"ci-test-game"') {
+              throw 'mod.json: id was not renamed to ci-test-game'
+            }
+            if ($modJson -notmatch '"name"\s*:\s*"CI Test Game"') {
+              throw 'mod.json: name was not renamed to CI Test Game'
+            }
+            if ($modJson -notmatch '"version"\s*:\s*"v0.0.0"') {
+              throw 'mod.json: version was not reset to v0.0.0'
+            }
+            if ($modJson -match 'deltarune-ddd-ch1') {
+              throw 'mod.json: template name still present'
+            }
+            if ($hadManifest) {
+              $manifest = Get-Content -Raw .release-please-manifest.json
+              if ($manifest -notmatch '"0\.0\.0"') {
+                throw '.release-please-manifest.json was not reset to 0.0.0'
+              }
+            }
+            if ($oldTiled -and -not (Test-Path 'ci-test-game.tiled-project')) {
+              throw "$oldTiled was not renamed to ci-test-game.tiled-project"
+            }
+            # No tracked text file may still mention the project name in any of
+            # its spellings (deltarune-ddd-ch1 / DELTARUNE-DDD-CH1 /
+            # DELTARUNE_DDD_CH1 / deltarunedddch1 ...), nor the upstream
+            # template name, which this migration rewrites too.
+            # -I skips binaries: the authoring .blend files embed relative
+            # asset paths carrying the project name, and no rename pass can
+            # rewrite those.
+            & git grep -inIE 'deltarune.?ddd.?ch1|deltarunedddch1|thrash.?machine'
+            if ($LASTEXITCODE -eq 0) {
+              throw 'tracked files still contain the template name'
+            }
+            # The only dangling index entry allowed is the renamed tiled
+            # project (mv before git add); anything else must exist untouched.
+            $dangling = @(& git status --porcelain) | Where-Object { $_ -match '^.D ' }
+            $unexpected = @($dangling | Where-Object { -not ($oldTiled -and $_.EndsWith($oldTiled)) })
+            if ($unexpected.Count -gt 0) {
+              throw "tracked files went missing: $($unexpected -join ', ')"
+            }
+            if ($dangling.Count -gt 1) {
+              throw "more dangling index entries than expected: $($dangling -join ', ')"
+            }
+          } finally {
+            Pop-Location
+          }
+      - name: Verify the renamed copy passes the test suite (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y just luajit jq
+          cd "$RUNNER_TEMP/start-script-test"
+          make test

@@ -22,12 +22,14 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
 
       - name: Install Android API and NDK
         run: sdkmanager "platforms;android-34" "build-tools;34.0.0" "ndk;25.2.9519653"
 
       - name: Build Android APK
-        run: ./build_android.sh
+        run: ./tools/build_android.sh
 
       - uses: actions/upload-artifact@v4
         with:

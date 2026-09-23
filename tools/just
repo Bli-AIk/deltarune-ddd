@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+# tools/just — run the mod's justfile recipes without needing a standalone
+# `just` install. This is the interface the build workflow uses so a pristine
+# Windows machine works out of the box:
+#
+#   $JUST (explicit binary)                      — always wins
+#   Windows: the debug-tools GUI sidecar
+#       <Kristal-root>/.tools/gui/kristal-run-windows-{x64,arm64}.exe
+#       in its `just-task` mode (just 1.58.0 is compiled into kristal-run).
+#       The exact GUI release is selected from the engine VERSION, then
+#       downloaded on demand and SHA256-verified.
+#   `just` on PATH                               — normal on Linux/CI
+#   otherwise: clear error with install guidance.
+#
+# The wrapper cd's into the mod root first, so recipes behave exactly like
+# running `just build` from the mod root (justfile_directory = invocation
+# directory = mod root). Any extra arguments are passed through to just.
+#
+# Override the sidecar with $KRISTAL_RUN. Requires Git Bash on Windows (the
+# build scripts need bash/tar/curl anyway).
+set -euo pipefail
+
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+MOD_ROOT="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd -P)"
+JUSTFILE="$MOD_ROOT/justfile"
+
+die() {
+    printf 'tools/just: %s\n' "$*" >&2
+    exit 1
+}
+
+is_windows_host() {
+    case "$(uname -s)" in
+        MINGW*|MSYS*|CYGWIN*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+host_arch() {
+    case "$(uname -m)" in
+        x86_64|amd64) printf 'x64\n' ;;
+        aarch64|arm64) printf 'arm64\n' ;;
+        *) return 1 ;;
+    esac
+}
+
+# Resolve the engine nearest to this project, falling back to an explicitly
+# configured root only when the project lives outside an engine tree.
+resolve_engine() {
+    local probe parent candidate
+    ENGINE_ROOT=""
+    probe="$MOD_ROOT"
+    while :; do
+        if [ -f "$probe/main.lua" ] && [ -f "$probe/src/kristal.lua" ] && [ -f "$probe/VERSION" ]; then
+            ENGINE_ROOT="$probe"
+            return 0
+        fi
+        parent="$(dirname "$probe")"
+        [ "$parent" = "$probe" ] && break
+        probe="$parent"
+    done
+    for candidate in "${KRISTAL_ROOT:-}" "${DELTARUNE_DDD_CH1_KRISTAL_DIR:-}"; do
+        [ -n "$candidate" ] || continue
+        if [ -f "$candidate/main.lua" ] && [ -f "$candidate/src/kristal.lua" ] && [ -f "$candidate/VERSION" ]; then
+            ENGINE_ROOT="$(CDPATH= cd -- "$candidate" && pwd -P)"
+            return 0
+        fi
+    done
+    die "Kristal engine not found; put this project under <Kristal>/mods/ or set KRISTAL_ROOT"
+}
+
+select_gui_release() {
+    local version
+    resolve_engine
+    version="$(tr -d '\r\n' < "$ENGINE_ROOT/VERSION")"
+    case "$version" in
+        0.10.0|v0.10.0) GUI_RELEASE_TAG="v0.1.5" ;;
+        0.11.0-dev|v0.11.0-dev) GUI_RELEASE_TAG="v0.2.0" ;;
+        *) die "unsupported Kristal VERSION '$version'; supported versions: 0.10.0, 0.11.0-dev" ;;
+    esac
+}
+
+# Resolve the GUI sidecar (kristal-run), downloading the engine-compatible
+# release when the tagged, verified cache is missing.
+resolve_kristal_run() {
+    local bin="${KRISTAL_RUN:-}" arch dir exe sums cached
+    if [ -n "$bin" ]; then
+        command -v "$bin" >/dev/null 2>&1 && { command -v "$bin"; return 0; }
+        [ -f "$bin" ] && { printf '%s\n' "$bin"; return 0; }
+        die "KRISTAL_RUN points to a missing binary: $bin"
+    fi
+    select_gui_release
+    arch="$(host_arch)" || die "unsupported host architecture: $(uname -m)"
+    dir="$ENGINE_ROOT/.tools/gui"
+    exe="$dir/kristal-run-windows-$arch.exe"
+    sums="$dir/checksums-windows-$arch.txt"
+    cached=""
+    if [ -f "$dir/version.txt" ]; then
+        cached="$(tr -d '\r\n' < "$dir/version.txt")"
+    fi
+    if [ ! -f "$exe" ] || [ ! -f "$sums" ] || [ "$cached" != "$GUI_RELEASE_TAG" ] \
+        || ! verify_sidecar "$exe" "$sums"; then
+        download_sidecar "$dir" "$arch" "$exe" "$sums" "$GUI_RELEASE_TAG"
+    fi
+    printf '%s\n' "$exe"
+}
+
+# Verify one cached sidecar against its downloaded release checksums.
+verify_sidecar() {
+    local exe="$1" sums="$2" actual
+    [ -f "$exe" ] && [ -f "$sums" ] || return 1
+    actual="$(sha256sum "$exe" | awk '{print $1}')" || return 1
+    grep -qiF "$actual" "$sums"
+}
+
+# Download the sidecar + checksums from one exact GUI release and verify SHA256
+# before activating it. This keeps the sidecar aligned with gui.cmd's tag.
+download_sidecar() {
+    local dir="$1" arch="$2" exe="$3" sums="$4" tag="$5"
+    local base="https://github.com/Bli-AIk/kristal-debug-tools-gui/releases/download/$tag"
+    local exe_tmp="$exe.tmp.$$" sums_tmp="$sums.tmp.$$" version_tmp="$dir/version.txt.tmp.$$"
+    command -v curl >/dev/null 2>&1 || die "curl is required to download the embedded just (kristal-run)"
+    command -v sha256sum >/dev/null 2>&1 || die "sha256sum is required to verify the downloaded sidecar"
+    mkdir -p "$dir"
+    rm -f "$exe_tmp" "$sums_tmp" "$version_tmp"
+    printf 'tools/just: downloading embedded just (kristal-run windows-%s, GUI %s)…\n' "$arch" "$tag" >&2
+    if ! curl --fail --location --output "$exe_tmp" "$base/kristal-run-windows-$arch.exe"; then
+        rm -f "$exe_tmp" "$sums_tmp" "$version_tmp"
+        die "download of kristal-run-windows-$arch.exe for GUI $tag failed"
+    fi
+    if ! curl --fail --location --output "$sums_tmp" "$base/checksums-windows-$arch.txt"; then
+        rm -f "$exe_tmp" "$sums_tmp" "$version_tmp"
+        die "download of checksums-windows-$arch.txt for GUI $tag failed"
+    fi
+    if ! verify_sidecar "$exe_tmp" "$sums_tmp"; then
+        rm -f "$exe_tmp" "$sums_tmp" "$version_tmp"
+        die "checksum mismatch for kristal-run-windows-$arch.exe (GUI $tag); check your network and retry"
+    fi
+    mv -f "$exe_tmp" "$exe"
+    mv -f "$sums_tmp" "$sums"
+    printf '%s\n' "$tag" > "$version_tmp"
+    mv -f "$version_tmp" "$dir/version.txt"
+    printf 'tools/just: sidecar ready: %s\n' "$exe" >&2
+}
+
+[ -f "$JUSTFILE" ] || die "no justfile at $JUSTFILE"
+
+if [ -n "${JUST:-}" ] && command -v "$JUST" >/dev/null 2>&1; then
+    cd "$MOD_ROOT"
+    exec "$JUST" "$@"
+fi
+
+if is_windows_host; then
+    # Prefer the GUI-embedded just (kristal-run) over a standalone install.
+    kr="$(resolve_kristal_run)"
+    cd "$MOD_ROOT"
+    exec "$kr" just-task "$JUSTFILE" "$@"
+fi
+
+if command -v just >/dev/null 2>&1; then
+    cd "$MOD_ROOT"
+    exec just "$@"
+fi
+
+die "no just found; install it (https://just.systems) or run this from a Git Bash that can reach the debug-tools GUI"

@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
     printf '%s\n' \
-        'Usage: ./start.sh [--name PROJECT_NAME] [--yes]' \
+        'Usage: ./tools/start.sh [--name PROJECT_NAME] [--yes]' \
         '' \
         'Initialize this template with a project name and fetch all submodules.' \
         'When PROJECT_NAME is omitted, the Git root directory name is used.'
@@ -256,6 +256,13 @@ while IFS= read -r -d '' relative_file; do
 done < <(git -C "$project_root" ls-files -z -- '*.tiled-project')
 
 while IFS= read -r -d '' relative_file; do
+    # Root-level paths only: a project rename owns the files named after the
+    # project itself, not whatever happens to contain its name further down
+    # the tree (renaming libraries/depthseffects alongside would just break
+    # the library).
+    case "$relative_file" in
+        */*) continue ;;
+    esac
     old_file="$project_root/$relative_file"
     [ -f "$old_file" ] || continue
 
@@ -324,4 +331,33 @@ printf 'Updated %s tracked text file(s).\n' "$changed_files"
 printf 'Renamed %s tracked file path(s).\n' "$renamed_paths"
 printf '%s\n' 'Updating submodules...'
 git -C "$project_root" submodule update --init --recursive
+
+printf '%s\n' 'Resetting project version to 0.0.0...'
+if [ -f "$project_root/mod.json" ]; then
+    perl -0pi -e 's/^([[:space:]]*"version"[[:space:]]*:[[:space:]]*")[^"]*(".*)$/$1v0.0.0$2/m' \
+        "$project_root/mod.json"
+    # The replacement pass is string-based, so a project whose "name" holds the
+    # same text as its "id" (several derived projects do) ends up with both
+    # fields set to the slug: the id pair consumes the string before the name
+    # pair looks for it. Pin the two identity fields to what was asked for.
+    NEW_ID="$project_id" NEW_NAME="$project_name" \
+        perl -0pi -e 's/^([[:space:]]*"id"[[:space:]]*:[[:space:]]*")[^"]*(".*)$/$1$ENV{NEW_ID}$2/m;
+                      s/^([[:space:]]*"name"[[:space:]]*:[[:space:]]*")[^"]*(".*)$/$1$ENV{NEW_NAME}$2/m' \
+        "$project_root/mod.json"
+fi
+if [ -f "$project_root/.release-please-manifest.json" ]; then
+    cat > "$project_root/.release-please-manifest.json" <<'EOF'
+{
+  ".": "0.0.0"
+}
+EOF
+fi
+if [ -f "$project_root/CHANGELOG.md" ]; then
+    cat > "$project_root/CHANGELOG.md" <<'EOF'
+# Changelog
+
+All notable changes are documented here by release-please.
+EOF
+fi
+
 printf '%s\n' 'Project initialization complete.'

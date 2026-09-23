@@ -2,7 +2,11 @@
 local DDDScene, super = Class(Event, "ddd_scene")
 
 local function warn(message)
-    if Kristal and Kristal.Console and Kristal.Console.warn then
+    -- Logging.warn is the 0.11 replacement; Kristal.Console:warn is deprecated
+    -- there and removed later, so only fall back to it on older engines.
+    if Logging and Logging.warn then
+        Logging.warn(message)
+    elseif Kristal and Kristal.Console and Kristal.Console.warn then
         Kristal.Console:warn(message)
     else
         print(message)

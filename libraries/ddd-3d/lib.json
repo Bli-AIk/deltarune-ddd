@@ -1,6 +1,6 @@
 {
     "id": "ddd-3d",
     "version": "v0.1.0",
-    "engineVer": "v0.10.0",
+    "engineVer": "v0.11.0-dev",
     "authors": ["deltarune-ddd contributors"]
 }
