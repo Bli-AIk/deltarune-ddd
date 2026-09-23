@@ -5,6 +5,9 @@ KRISTAL ?=
 test: test-static test-debug-tools test-ddd-3d
 
 test-static:
+	luajit tests/optional_libraries.lua
+	luajit tests/i18n_console_segments.lua
+	luajit tests/library_enabled_announce.lua
 	sh .github/scripts/static-smoke.sh
 	find . -path ./.git -prune -o -path ./.emacs -prune -o -path ./.helix -prune -o \
 		-path ./libraries -prune -o -path ./.build -prune -o -path ./dist -prune -o \
