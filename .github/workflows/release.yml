@@ -9,6 +9,16 @@ on:
         description: Existing release tag to rebuild
         required: true
         type: string
+      build_android_apk:
+        description: Build the compiled Android APK (JDK 17 + Android SDK/NDK)
+        required: false
+        default: true
+        type: boolean
+      build_android_wrap:
+        description: Build the quick wrapper Android APK (official LÖVE shell + game.love)
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -37,7 +47,7 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y jq love luajit rsync unzip xvfb zip
+          sudo apt-get install -y just jq love luajit rsync unzip xvfb zip
       - name: Verify source and version
         run: |
           make test
@@ -52,10 +62,50 @@ jobs:
           PY
           )"
           test "$version" = "$RELEASE_TAG"
+      - name: Set up JDK 17
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_android_apk || inputs.build_android_wrap }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_android_apk }}
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - name: Install Android API and NDK
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_android_apk }}
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0" "ndk;25.2.9519653"
+
       - name: Build release assets
         run: |
-          ./build_standalone.sh
+          just build
           ./.github/scripts/build_mod.sh
+
+      - name: Build Android APK (compile)
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_android_apk }}
+        run: ./tools/build_android.sh
+
+      - name: Build Android wrapper APK (wrap)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_android_wrap }}
+        run: ./tools/build_android_wrap.sh
+
+      - name: Package full source with submodules
+        run: |
+          set -euo pipefail
+          TAG="$RELEASE_TAG"
+          mkdir -p dist
+          # Unlike GitHub's auto-generated archives, include the checked-out
+          # submodule contents so the mod is complete and usable as-is.
+          tar --exclude='.git' --exclude='.build' --exclude='dist*' --exclude='.tools' --exclude='.worktrees' \
+            -czf "dist/deltarune-ddd-ch1-$TAG-full-source.tar.gz" -C "$PWD" .
+          (cd "$PWD" && zip -qr "dist/deltarune-ddd-ch1-$TAG-full-source.zip" . \
+            -x '.git*' '.build*' 'dist*' '.tools*' '.worktrees*')
+
+      - name: Generate and verify SHA-256 manifest
+        run: |
           .github/scripts/generate_sha256sums.sh dist
           (cd dist && sha256sum -c SHA256SUMS)
       - uses: actions/upload-artifact@v4
@@ -71,5 +121,10 @@ jobs:
           if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release create "$RELEASE_TAG" --title "deltarune-ddd-ch1 $RELEASE_TAG" --generate-notes
           fi
-          files=(dist/*.love dist/*-win64.zip dist/*-mod.zip dist/SHA256SUMS)
+          files=()
+          for pattern in '*.love' '*-win64.zip' '*-mod.zip' '*.apk' '*-full-source.tar.gz' '*-full-source.zip'; do
+            while IFS= read -r -d '' f; do files+=("$f"); done < <(find dist -maxdepth 1 -type f -name "$pattern" -print0)
+          done
+          files+=(dist/SHA256SUMS)
+          test "${#files[@]}" -gt 0
           gh release upload "$RELEASE_TAG" "${files[@]}" --clobber

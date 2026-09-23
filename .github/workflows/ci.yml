@@ -1,4 +1,4 @@
-name: Verify Template
+name: Verify Builds
 
 on:
   push:
@@ -10,7 +10,8 @@ permissions:
   contents: read
 
 jobs:
-  verify:
+  linux:
+    name: Linux desktop packages
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,15 +25,47 @@ jobs:
           test -s libraries/kristal-object-selector-plus/lib.lua
           test -s libraries/terminal-cli/lib.lua
           test -s libraries/kristal-debug-tools/lib.lua
+          test -s libraries/MagicalGlassRedux/lib.lua
+          test -s libraries/UndertaleMonstersRecreation/lib.json
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y just jq love luajit rsync unzip xvfb zip
+          sudo apt-get install -y just jq love luajit rsync unzip xvfb zip icoutils
       - name: Check Lua source and documentation
         run: make test
-      - name: Build standalone packages
-        run: ./build_standalone.sh
-      - name: Build Mod package
+      - name: Run GUI headless integration
+        run: |
+          set -euo pipefail
+          KRISTAL_DEBUG_TOOLS_TEST_PROJECT_ROOT="$PWD" \
+            bash libraries/kristal-debug-tools/tests/smoke.sh
+
+          gui_dir="$RUNNER_TEMP/kristal-debug-tools-gui"
+          gui_base="https://github.com/Bli-AIk/kristal-debug-tools-gui/releases/download/v0.2.0"
+          mkdir -p "$gui_dir"
+          curl -fsSL -o "$gui_dir/kristal-run-linux-x64" "$gui_base/kristal-run-linux-x64"
+          curl -fsSL -o "$gui_dir/checksums-linux-x64.txt" "$gui_base/checksums-linux-x64.txt"
+          chmod +x "$gui_dir/kristal-run-linux-x64"
+
+          (
+            cd "$gui_dir"
+            sha256sum --ignore-missing -c checksums-linux-x64.txt
+            ./kristal-run-linux-x64 just-dump "$GITHUB_WORKSPACE/justfile" \
+              | jq -e '.recipes["build-love"] and .recipes.gui' >/dev/null
+            DELTARUNE_DDD_CH1_OUTPUT_DIR="$GITHUB_WORKSPACE/dist-gui" \
+              ./kristal-run-linux-x64 just-task "$GITHUB_WORKSPACE/justfile" build-love
+          )
+          for file in dist-gui/deltarune-ddd-ch1-release.love dist-gui/deltarune-ddd-ch1-debug.love; do
+            test -s "$file"
+            unzip -t "$file" >/dev/null
+            test -z "$(unzip -Z1 "$file" | grep -Fx 'mods/deltarune-ddd-ch1/gui.cmd' || true)"
+          done
+      - name: Build standalone packages (love + win)
+        run: just build
+      - name: Build Windows-only package
+        run: DELTARUNE_DDD_CH1_OUTPUT_DIR=dist-win just build-win
+      - name: Build .love-only package
+        run: DELTARUNE_DDD_CH1_OUTPUT_DIR=dist-love just build-love
+      - name: Build project package
         run: ./.github/scripts/build_mod.sh
       - name: Run Kristal smoke test
         run: KRISTAL="$PWD/.build/Kristal" make test-kristal
@@ -50,10 +83,68 @@ jobs:
             test -s "$file"
             unzip -t "$file" >/dev/null
           done
+          test -s dist-win/deltarune-ddd-ch1-release-win64.zip
+          test -s dist-win/deltarune-ddd-ch1-debug-win64.zip
+          unzip -t dist-win/deltarune-ddd-ch1-release-win64.zip >/dev/null
+          unzip -t dist-win/deltarune-ddd-ch1-debug-win64.zip >/dev/null
+          test ! -e dist-win/deltarune-ddd-ch1-release.love
+          test ! -e dist-win/deltarune-ddd-ch1-debug.love
+          test -s dist-love/deltarune-ddd-ch1-release.love
+          test -s dist-love/deltarune-ddd-ch1-debug.love
+          unzip -t dist-love/deltarune-ddd-ch1-release.love >/dev/null
+          unzip -t dist-love/deltarune-ddd-ch1-debug.love >/dev/null
+          test -z "$(find dist-love -name '*.zip' | head -n 1)"
           unzip -Z1 dist/deltarune-ddd-ch1-mod.zip | grep -Fx mod.json >/dev/null
           test -z "$(unzip -Z1 dist/deltarune-ddd-ch1-mod.zip | grep '^libraries/kristal-object-selector-plus/' || true)"
           test -z "$(unzip -Z1 dist/deltarune-ddd-ch1-mod.zip | grep '^libraries/terminal-cli/' || true)"
           test -z "$(unzip -Z1 dist/deltarune-ddd-ch1-mod.zip | grep '^libraries/kristal-debug-tools/' || true)"
+          test -z "$(unzip -Z1 dist/deltarune-ddd-ch1-release.love | grep '^mods/deltarune-ddd-ch1/libraries/kristal-debug-tools/' || true)"
+          # gui.cmd is a local convenience wrapper, never game content. The
+          # canonical launcher remains in the debug-tools library for dev use.
+          test -z "$(unzip -Z1 dist/deltarune-ddd-ch1-mod.zip | grep -Fx 'gui.cmd' || true)"
+          for archive in \
+            dist/deltarune-ddd-ch1-release.love \
+            dist/deltarune-ddd-ch1-debug.love \
+            dist-love/deltarune-ddd-ch1-release.love \
+            dist-love/deltarune-ddd-ch1-debug.love; do
+            test -z "$(unzip -Z1 "$archive" | grep -Fx 'mods/deltarune-ddd-ch1/gui.cmd' || true)"
+          done
+          # Debug is a development artifact: it retains development libraries.
+          unzip -Z1 dist/deltarune-ddd-ch1-debug.love | grep -q '^mods/deltarune-ddd-ch1/libraries/kristal-debug-tools/'
+          # Optional UT content packs follow the optionalLibraries selection in
+          # mod.json: the template default keeps MGR disabled and UMR follows it
+          # as a required dependent, so release and project packages are pruned
+          # of them (see README "可选 UT 内容库"). Forks that re-enable the
+          # packs must flip these asserts back to 'grep -q'.
+          test -z "$(unzip -Z1 dist/deltarune-ddd-ch1-mod.zip | grep '^libraries/MagicalGlassRedux/' || true)"
+          test -z "$(unzip -Z1 dist/deltarune-ddd-ch1-mod.zip | grep '^libraries/UndertaleMonstersRecreation/' || true)"
+          test -z "$(unzip -Z1 dist/deltarune-ddd-ch1-release.love | grep '^mods/deltarune-ddd-ch1/libraries/MagicalGlassRedux/' || true)"
+          test -z "$(unzip -Z1 dist/deltarune-ddd-ch1-release.love | grep '^mods/deltarune-ddd-ch1/libraries/UndertaleMonstersRecreation/' || true)"
+          # Local/editor metadata must never ship, including from nested libraries.
+          for archive in \
+            dist/deltarune-ddd-ch1-release.love \
+            dist/deltarune-ddd-ch1-debug.love \
+            dist/deltarune-ddd-ch1-mod.zip \
+            dist-love/deltarune-ddd-ch1-release.love \
+            dist-love/deltarune-ddd-ch1-debug.love \
+            dist-win/deltarune-ddd-ch1-release-win64.zip \
+            dist-win/deltarune-ddd-ch1-debug-win64.zip; do
+            if metadata_entries=$(unzip -Z1 "$archive" | grep -E '(^|/)(\.github|\.claude)(/|$)'); then
+              printf 'Package contains local metadata: %s\\n%s\\n' "$archive" "$metadata_entries" >&2
+              exit 1
+            fi
+          done
+          # Custom-icon contract: build-time icon sources never leak into packages.
+          # Inside the .love the project lives under mods/<id>/, so the leaked path
+          # would be mods/deltarune-ddd-ch1/assets/icon/ — not a root-level one.
+          test -z "$(unzip -Z1 dist/deltarune-ddd-ch1-release.love | grep '^mods/deltarune-ddd-ch1/assets/icon/' || true)"
+          test -z "$(unzip -Z1 dist/deltarune-ddd-ch1-mod.zip | grep '^assets/icon/' || true)"
+          # When a window icon is provided, it must land at the project root and enable the flag.
+          if [ -f assets/icon/window_icon.png ]; then
+            unzip -p dist/deltarune-ddd-ch1-release.love mods/deltarune-ddd-ch1/mod.json \
+              | grep -q '"setWindowTitleAndIcon": true'
+            unzip -Z1 dist/deltarune-ddd-ch1-release.love | grep -Fx 'mods/deltarune-ddd-ch1/window_icon.png' >/dev/null
+          fi
       - name: Generate and verify SHA-256 manifest
         run: |
           .github/scripts/generate_sha256sums.sh dist
@@ -64,3 +155,370 @@ jobs:
           name: deltarune-ddd-ch1-${{ github.sha }}
           path: dist/
           if-no-files-found: error
+
+  windows:
+    name: Windows native packages
+    runs-on: windows-2022
+    timeout-minutes: 90
+    env:
+      DELTARUNE_DDD_CH1_NO_OPEN_DIR: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Verify required submodules
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git submodule status --recursive
+          foreach ($file in @(
+            'libraries/kristal-i18n/lib.lua',
+            'libraries/kristal-object-selector-plus/lib.lua',
+            'libraries/terminal-cli/lib.lua',
+            'libraries/kristal-debug-tools/lib.lua',
+            'libraries/MagicalGlassRedux/lib.lua',
+            'libraries/UndertaleMonstersRecreation/lib.json'
+          )) {
+            if (-not (Test-Path -LiteralPath $file) -or (Get-Item -LiteralPath $file).Length -eq 0) {
+              throw "Required submodule file is missing or empty: $file"
+            }
+          }
+      - name: Set up JDK 17 for Android packages
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Android SDK for native packages
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install and verify Android API 34 and NDK 25.2
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sdkManager = @(Get-Command sdkmanager.bat -CommandType Application -ErrorAction SilentlyContinue)[0]
+          if ($null -eq $sdkManager) {
+            $sdkManager = @(Get-Command sdkmanager -CommandType Application -ErrorAction Stop)[0]
+          }
+          & $sdkManager.Path 'platforms;android-34' 'build-tools;34.0.0' 'ndk;25.2.9519653'
+          if ($LASTEXITCODE -ne 0) { throw "sdkmanager installation failed: $LASTEXITCODE" }
+
+          $sdk = $env:ANDROID_SDK_ROOT
+          if ([string]::IsNullOrWhiteSpace($sdk)) { $sdk = $env:ANDROID_HOME }
+          if ([string]::IsNullOrWhiteSpace($sdk)) { throw 'Android setup did not define ANDROID_SDK_ROOT or ANDROID_HOME.' }
+          foreach ($path in @(
+            (Join-Path $sdk 'platforms\android-34'),
+            (Join-Path $sdk 'build-tools\34.0.0')
+          )) {
+            if (-not (Test-Path -LiteralPath $path)) { throw "Required Android SDK component is missing: $path" }
+          }
+          $ndkProperties = Join-Path $sdk 'ndk\25.2.9519653\source.properties'
+          if (-not (Test-Path -LiteralPath $ndkProperties)) { throw "Required Android NDK metadata is missing: $ndkProperties" }
+          $ndkRevision = [regex]::Match(
+            (Get-Content -LiteralPath $ndkProperties -Raw),
+            '(?m)^\s*Pkg\.Revision\s*=\s*(?<revision>[^\r\n]+)\s*$'
+          ).Groups['revision'].Value.Trim()
+          if ($ndkRevision -ne '25.2.9519653') {
+            throw "Android NDK revision is '$ndkRevision', expected '25.2.9519653'."
+          }
+      - name: Install LÖVE for native tests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          . "$env:GITHUB_WORKSPACE\tools\windows_common.ps1"
+          $tools = Join-Path $env:RUNNER_TEMP 'deltarune-ddd-ch1-tools'
+          $love = Get-TMLoveExecutable $tools -DownloadIfMissing
+          "LOVE=$love" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "DELTARUNE_DDD_CH1_TOOLS_DIR=$tools" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "DELTARUNE_DDD_CH1_CACHE_DIR=$tools" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          (Split-Path -Parent $love) | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Run native Windows smoke tests
+        shell: pwsh
+        run: pwsh -NoProfile -File tests/windows_build.ps1
+      - name: Run Windows GUI launcher integration
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $engine = Join-Path $env:RUNNER_TEMP 'kristal-debug-tools-gui-engine'
+          New-Item -ItemType Directory -Force -Path (Join-Path $engine 'src') | Out-Null
+          New-Item -ItemType File -Force -Path (Join-Path $engine 'main.lua'), (Join-Path $engine 'src\kristal.lua') | Out-Null
+          Set-Content -LiteralPath (Join-Path $engine 'VERSION') -Value '0.11.0-dev' -NoNewline
+
+          $previousRoot = $env:KRISTAL_ROOT
+          $previousHook = $env:KRISTAL_DEBUG_TOOLS_GUI_PRINT_SELECTION
+          try {
+            $env:KRISTAL_ROOT = $engine
+            $env:KRISTAL_DEBUG_TOOLS_GUI_PRINT_SELECTION = '1'
+            foreach ($launcher in @('libraries\kristal-debug-tools\gui.cmd', 'gui.cmd')) {
+              $output = @(& cmd.exe /d /c $launcher 2>&1 | ForEach-Object { $_.ToString() })
+              if ($LASTEXITCODE -ne 0) { throw "$launcher selection smoke failed: $LASTEXITCODE" }
+              foreach ($expected in @(
+                'ENGINE_VERSION=0.11.0-dev',
+                'GUI_RELEASE_TAG=v0.2.0',
+                'GUI_SOURCE_REF=v0.2.0',
+                'GUI_SOURCE_KIND=tag',
+                'GUI_RELEASE_URL=https://github.com/Bli-AIk/kristal-debug-tools-gui/releases/download/v0.2.0/'
+              )) {
+                if ($output -notcontains $expected) {
+                  throw "$launcher selection smoke is missing '$expected': $($output -join '; ')"
+                }
+              }
+            }
+
+            Remove-Item Env:KRISTAL_DEBUG_TOOLS_GUI_PRINT_SELECTION -ErrorAction SilentlyContinue
+            $cache = Join-Path $engine '.tools\gui'
+            New-Item -ItemType Directory -Force -Path $cache | Out-Null
+            $gui = Join-Path $cache 'kristal-debug-tools-gui-windows-x64.exe'
+            $sidecar = Join-Path $cache 'kristal-run-windows-x64.exe'
+            Copy-Item -LiteralPath $env:ComSpec -Destination $gui
+            Copy-Item -LiteralPath $env:ComSpec -Destination $sidecar
+
+            function Get-Sha256([string]$Path) {
+              $stream = $null
+              $algorithm = $null
+              try {
+                $stream = [System.IO.File]::OpenRead($Path)
+                $algorithm = [System.Security.Cryptography.SHA256]::Create()
+                return ([System.BitConverter]::ToString($algorithm.ComputeHash($stream))).Replace('-', '').ToLowerInvariant()
+              } finally {
+                if ($null -ne $algorithm) { $algorithm.Dispose() }
+                if ($null -ne $stream) { $stream.Dispose() }
+              }
+            }
+            @(
+              "$(Get-Sha256 $gui)  $(Split-Path -Leaf $gui)",
+              "$(Get-Sha256 $sidecar)  $(Split-Path -Leaf $sidecar)"
+            ) | Set-Content -LiteralPath (Join-Path $cache 'checksums-windows-x64.txt')
+            Set-Content -LiteralPath (Join-Path $cache 'version.txt') -Value 'v0.2.0' -NoNewline
+
+            # cmd.exe is a harmless stand-in that exits immediately. Both launchers
+            # must verify the existing cache without taking the network path.
+            foreach ($launcher in @('libraries\kristal-debug-tools\gui.cmd', 'gui.cmd')) {
+              $stdout = Join-Path $env:RUNNER_TEMP ("gui-cache-" + [guid]::NewGuid().ToString('N') + '.stdout')
+              $stderr = Join-Path $env:RUNNER_TEMP ("gui-cache-" + [guid]::NewGuid().ToString('N') + '.stderr')
+              try {
+                $process = Start-Process -FilePath $env:ComSpec -ArgumentList @('/d', '/c', "$launcher /d /c exit 0") `
+                  -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+                if (-not $process.WaitForExit(30000)) {
+                  $process.Kill()
+                  $process.WaitForExit()
+                  throw "$launcher did not finish its cached launch within 30 seconds."
+                }
+                $output = @()
+                if (Test-Path -LiteralPath $stdout) { $output += Get-Content -LiteralPath $stdout }
+                if (Test-Path -LiteralPath $stderr) { $output += Get-Content -LiteralPath $stderr }
+                if ($process.ExitCode -ne 0) { throw "$launcher cached launch failed: $($process.ExitCode) ($($output -join '; '))" }
+                if ($output -notcontains '[kristal-debug-tools] Using verified GUI release v0.2.0 for Kristal 0.11.0-dev.') {
+                  throw "$launcher did not use the verified cache: $($output -join '; ')"
+                }
+                if ($output | Where-Object { $_ -like '*Downloading GUI release*' }) {
+                  throw "$launcher unexpectedly entered the download path: $($output -join '; ')"
+                }
+              } finally {
+                Remove-Item -LiteralPath $stdout, $stderr -Force -ErrorAction SilentlyContinue
+              }
+            }
+          } finally {
+            if ($null -eq $previousRoot) { Remove-Item Env:KRISTAL_ROOT -ErrorAction SilentlyContinue } else { $env:KRISTAL_ROOT = $previousRoot }
+            if ($null -eq $previousHook) { Remove-Item Env:KRISTAL_DEBUG_TOOLS_GUI_PRINT_SELECTION -ErrorAction SilentlyContinue } else { $env:KRISTAL_DEBUG_TOOLS_GUI_PRINT_SELECTION = $previousHook }
+          }
+      - name: Build every desktop target through native Windows entry points
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          cmd.exe /d /c tools\just.cmd build
+          if ($LASTEXITCODE -ne 0) { throw "tools\\just.cmd build failed: $LASTEXITCODE" }
+
+          $env:DELTARUNE_DDD_CH1_OUTPUT_DIR = Join-Path $PWD 'dist-win'
+          cmd.exe /d /c tools\just.cmd build-win
+          if ($LASTEXITCODE -ne 0) { throw "tools\\just.cmd build-win failed: $LASTEXITCODE" }
+
+          $env:DELTARUNE_DDD_CH1_OUTPUT_DIR = Join-Path $PWD 'dist-love'
+          cmd.exe /d /c tools\just.cmd build-love
+          if ($LASTEXITCODE -ne 0) { throw "tools\\just.cmd build-love failed: $LASTEXITCODE" }
+
+          Remove-Item Env:DELTARUNE_DDD_CH1_OUTPUT_DIR -ErrorAction SilentlyContinue
+          cmd.exe /d /c tools\just.cmd build-mod
+          if ($LASTEXITCODE -ne 0) { throw "tools\\just.cmd build-mod failed: $LASTEXITCODE" }
+      - name: Build Android packages through native Windows entry points
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $env:DELTARUNE_DDD_CH1_OUTPUT_DIR = Join-Path $PWD 'dist-android-win'
+          $env:DELTARUNE_DDD_CH1_FETCH_SDK = '0'
+
+          cmd.exe /d /c tools\just.cmd build-android
+          if ($LASTEXITCODE -ne 0) { throw "tools\\just.cmd build-android failed: $LASTEXITCODE" }
+
+          cmd.exe /d /c tools\just.cmd build-android-wrap
+          if ($LASTEXITCODE -ne 0) { throw "tools\\just.cmd build-android-wrap failed: $LASTEXITCODE" }
+          foreach ($apk in @(
+            (Join-Path $env:DELTARUNE_DDD_CH1_OUTPUT_DIR 'deltarune-ddd-ch1-android.apk'),
+            (Join-Path $env:DELTARUNE_DDD_CH1_OUTPUT_DIR 'deltarune-ddd-ch1-android-wrap.apk')
+          )) {
+            if (-not (Test-Path -LiteralPath $apk) -or (Get-Item -LiteralPath $apk).Length -eq 0) {
+              throw "Android APK was not created: $apk"
+            }
+          }
+      - name: Verify Windows package contents
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          Add-Type -AssemblyName System.IO.Compression
+
+          function Get-ZipEntries([string]$Path) {
+            $archive = [System.IO.Compression.ZipFile]::OpenRead($Path)
+            try {
+              return @($archive.Entries | ForEach-Object FullName)
+            } finally {
+              $archive.Dispose()
+            }
+          }
+
+          function Assert-ArchiveContains([string[]]$Entries, [string]$Prefix) {
+            if (-not ($Entries | Where-Object { $_.StartsWith($Prefix, [System.StringComparison]::Ordinal) })) {
+              throw "Archive is missing expected entry prefix: $Prefix"
+            }
+          }
+
+          function Assert-ArchiveOmits([string[]]$Entries, [string]$Prefix) {
+            if ($Entries | Where-Object { $_.StartsWith($Prefix, [System.StringComparison]::Ordinal) }) {
+              throw "Archive unexpectedly contains entry prefix: $Prefix"
+            }
+          }
+
+          function Assert-ArchiveHasNoLocalMetadata([string[]]$Entries, [string]$Name) {
+            $leaks = @($Entries | Where-Object { $_ -match '(^|/)(\.github|\.claude)(/|$)' })
+            if ($leaks.Count -gt 0) {
+              throw "Archive unexpectedly contains local metadata ($Name): $($leaks -join '; ')"
+            }
+          }
+
+          $required = @(
+            'dist/deltarune-ddd-ch1-release.love',
+            'dist/deltarune-ddd-ch1-debug.love',
+            'dist/deltarune-ddd-ch1-release-win64.zip',
+            'dist/deltarune-ddd-ch1-debug-win64.zip',
+            'dist/deltarune-ddd-ch1-mod.zip',
+            'dist-win/deltarune-ddd-ch1-release-win64.zip',
+            'dist-win/deltarune-ddd-ch1-debug-win64.zip',
+            'dist-love/deltarune-ddd-ch1-release.love',
+            'dist-love/deltarune-ddd-ch1-debug.love',
+            'dist-android-win/deltarune-ddd-ch1-android.apk',
+            'dist-android-win/deltarune-ddd-ch1-android-wrap.apk'
+          )
+          foreach ($path in $required) {
+            if (-not (Test-Path -LiteralPath $path) -or (Get-Item -LiteralPath $path).Length -eq 0) {
+              throw "Expected package is missing or empty: $path"
+            }
+            $null = Get-ZipEntries $path
+          }
+
+          foreach ($path in @('dist-win/deltarune-ddd-ch1-release.love', 'dist-win/deltarune-ddd-ch1-debug.love')) {
+            if (Test-Path -LiteralPath $path) { throw "Windows-only build unexpectedly created: $path" }
+          }
+          if (Get-ChildItem -LiteralPath dist-love -Filter '*.zip' -File -ErrorAction SilentlyContinue) {
+            throw 'LÖVE-only build unexpectedly created a ZIP archive.'
+          }
+
+          $release = Get-ZipEntries 'dist/deltarune-ddd-ch1-release.love'
+          $debug = Get-ZipEntries 'dist/deltarune-ddd-ch1-debug.love'
+          $mod = Get-ZipEntries 'dist/deltarune-ddd-ch1-mod.zip'
+          $winRelease = Get-ZipEntries 'dist/deltarune-ddd-ch1-release-win64.zip'
+          $winDebug = Get-ZipEntries 'dist/deltarune-ddd-ch1-debug-win64.zip'
+          $winOnlyRelease = Get-ZipEntries 'dist-win/deltarune-ddd-ch1-release-win64.zip'
+          $winOnlyDebug = Get-ZipEntries 'dist-win/deltarune-ddd-ch1-debug-win64.zip'
+          $loveOnlyRelease = Get-ZipEntries 'dist-love/deltarune-ddd-ch1-release.love'
+          $loveOnlyDebug = Get-ZipEntries 'dist-love/deltarune-ddd-ch1-debug.love'
+          $compiledApk = Get-ZipEntries 'dist-android-win/deltarune-ddd-ch1-android.apk'
+          $apk = Get-ZipEntries 'dist-android-win/deltarune-ddd-ch1-android-wrap.apk'
+
+          Assert-ArchiveContains $mod 'mod.json'
+          # Optional UT content packs follow the optionalLibraries selection in
+          # mod.json: the template default keeps MGR disabled (UMR follows it),
+          # so the release .love must not contain them; the debug .love retains
+          # them. Forks that re-enable the packs must flip these back to
+          # Assert-ArchiveContains.
+          Assert-ArchiveOmits $release 'mods/deltarune-ddd-ch1/libraries/MagicalGlassRedux/'
+          Assert-ArchiveOmits $release 'mods/deltarune-ddd-ch1/libraries/UndertaleMonstersRecreation/'
+          Assert-ArchiveContains $debug 'mods/deltarune-ddd-ch1/libraries/kristal-debug-tools/'
+          Assert-ArchiveContains $winRelease 'deltarune-ddd-ch1-release-win64/DELTARUNE-DDD-CH1-release.exe'
+          Assert-ArchiveContains $winDebug 'deltarune-ddd-ch1-debug-win64/DELTARUNE-DDD-CH1-debug.exe'
+          Assert-ArchiveContains $winOnlyRelease 'deltarune-ddd-ch1-release-win64/DELTARUNE-DDD-CH1-release.exe'
+          Assert-ArchiveContains $winOnlyDebug 'deltarune-ddd-ch1-debug-win64/DELTARUNE-DDD-CH1-debug.exe'
+          Assert-ArchiveContains $compiledApk 'assets/game.love'
+          Assert-ArchiveContains $apk 'assets/game.love'
+          foreach ($archive in @(
+            @{ Entries = $release; Name = 'release .love' },
+            @{ Entries = $debug; Name = 'debug .love' },
+            @{ Entries = $mod; Name = 'mod ZIP' },
+            @{ Entries = $winRelease; Name = 'release Windows ZIP' },
+            @{ Entries = $winDebug; Name = 'debug Windows ZIP' },
+            @{ Entries = $winOnlyRelease; Name = 'Windows-only release ZIP' },
+            @{ Entries = $winOnlyDebug; Name = 'Windows-only debug ZIP' },
+            @{ Entries = $loveOnlyRelease; Name = 'LÖVE-only release .love' },
+            @{ Entries = $loveOnlyDebug; Name = 'LÖVE-only debug .love' }
+          )) {
+            Assert-ArchiveHasNoLocalMetadata $archive.Entries $archive.Name
+          }
+          foreach ($prefix in @(
+            'libraries/kristal-object-selector-plus/',
+            'libraries/terminal-cli/',
+            'libraries/kristal-debug-tools/'
+          )) {
+            Assert-ArchiveOmits $mod $prefix
+          }
+          Assert-ArchiveOmits $mod 'gui.cmd'
+          foreach ($entries in @($release, $debug, $loveOnlyRelease, $loveOnlyDebug)) {
+            Assert-ArchiveOmits $entries 'mods/deltarune-ddd-ch1/gui.cmd'
+          }
+          Assert-ArchiveOmits $release 'mods/deltarune-ddd-ch1/libraries/kristal-debug-tools/'
+      - name: Smoke test native task dispatcher cleanup
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          cmd.exe /d /c tools\just.cmd clean-build
+          if ($LASTEXITCODE -ne 0) { throw "tools\\just.cmd clean-build failed: $LASTEXITCODE" }
+          foreach ($path in @('.build', 'dist')) {
+            if (Test-Path -LiteralPath $path) { throw "tools\\just.cmd clean-build did not remove $path" }
+          }
+
+  android:
+    name: Linux Android packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      DELTARUNE_DDD_CH1_NO_OPEN_DIR: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y love unzip zip
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install Android API and NDK
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0" "ndk;25.2.9519653"
+      - name: Build compiled Android APK
+        run: |
+          DELTARUNE_DDD_CH1_OUTPUT_DIR=dist-android-compile ./tools/build_android.sh
+          test -s dist-android-compile/deltarune-ddd-ch1-android.apk
+          unzip -t dist-android-compile/deltarune-ddd-ch1-android.apk >/dev/null
+          unzip -Z1 dist-android-compile/deltarune-ddd-ch1-android.apk | grep -Fx assets/game.love >/dev/null
+      - name: Build wrapper Android APK
+        run: |
+          DELTARUNE_DDD_CH1_OUTPUT_DIR=dist-android-wrap ./tools/build_android_wrap.sh
+          test -s dist-android-wrap/deltarune-ddd-ch1-android-wrap.apk
+          unzip -t dist-android-wrap/deltarune-ddd-ch1-android-wrap.apk >/dev/null
+          unzip -Z1 dist-android-wrap/deltarune-ddd-ch1-android-wrap.apk | grep -Fx assets/game.love >/dev/null

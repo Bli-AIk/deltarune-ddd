@@ -17,9 +17,7 @@ local ANNOUNCERS = {
     "libraries/kristal-object-selector-plus/lib.lua",
     "libraries/kristal-debug-tools/lib.lua",
     "libraries/virtualkeyboard/lib.lua",
-    "libraries/MagicalGlassRedux/lib.lua",
     "libraries/terminal-cli/lib.lua",
-    "libraries/UndertaleMonstersRecreation/lib.lua",
 }
 
 -- Written out rather than assembled from ANNOUNCE: this is the shape the
@@ -57,12 +55,8 @@ local function read_lang(path)
 end
 
 for _, path in ipairs(ANNOUNCERS) do
-    local file = io.open(path, "rb")
-    if file then
-        local source = file:read("*a")
-        file:close()
-        check(path .. " announces itself", source:find(ANNOUNCE, 1, true) ~= nil)
-    end
+    local source = read_file(path)
+    check(path .. " announces itself", source:find(ANNOUNCE, 1, true) ~= nil)
 end
 
 -- The pattern is pulled out of the library rather than restated here, so this

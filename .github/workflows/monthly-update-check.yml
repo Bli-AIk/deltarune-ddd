@@ -1,0 +1,20 @@
+name: monthly-update-check
+
+on:
+  schedule:
+    - cron: '30 1 18 * *'  # 月更提醒：每月 18 号 01:30 UTC（09:30 东八）
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Monthly update reminder
+        run: bash .github/scripts/monthly-update-check.sh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
