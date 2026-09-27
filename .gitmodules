@@ -17,3 +17,6 @@
 [submodule "libraries/kristal-debug-tools"]
 	path = libraries/kristal-debug-tools
 	url = https://github.com/Bli-AIk/kristal-debug-tools.git
+[submodule "docs"]
+	path = docs
+	url = https://github.com/Bli-AIk/deltarune-ddd-docs.git
