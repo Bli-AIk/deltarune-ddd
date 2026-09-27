@@ -99,6 +99,22 @@ build-android-wrap:
 build-mod:
     @{{ if os() == "windows" { "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"" + justfile_directory() + "/tools/build.ps1\" mod" } else { "bash ./.github/scripts/build_mod.sh" } }}
 
+# Pull the private music library (the `music` submodule under docs/).
+# zh_hans: 拉取私有曲库（docs/ 下的 music 子模块）。
+# The public .gitmodules marks it `update = none`, so a bare --recursive skips it
+# silently (and CI must keep skipping it: GITHUB_TOKEN cannot read a private repo,
+# and a recursive checkout would hard-fail). This recipe pulls it explicitly.
+# zh_hans: 公开 .gitmodules 里这条标了 update = none，所以裸 --recursive 会静默跳过它
+# zh_hans: ——CI 必须继续跳过：GITHUB_TOKEN 读不到私有仓库，递归检出会硬失败。
+# zh_hans: 这条 recipe 显式拉取，裸命令与新机器都靠它。
+# The tracks are copyrighted and must never be redistributed, so they only ever
+# live in the private repo and never in a public release.
+# zh_hans: 曲目有版权、不能公开分发，所以只在私有仓库里，公开发布物永远没有它。
+music:
+    @git submodule update --init docs
+    @git -C docs -c submodule.music.update=checkout submodule update --init music
+    @printf 'music: %s 首 ogg\n' "$(ls docs/music/*.ogg 2>/dev/null | wc -l)"
+
 # Remove build artifacts.
 # zh_hans: 清理构建产物
 clean-build:
