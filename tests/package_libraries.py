@@ -15,7 +15,7 @@ SPEC = importlib.util.spec_from_file_location(
 )
 CHECKER = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(CHECKER)
-MOD_ID = 'thrash-machine'
+MOD_ID = 'fixture-mod'
 
 
 def archive(entries):
