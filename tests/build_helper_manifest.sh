@@ -123,6 +123,19 @@ grep -F '"undertale_monsters_recreation": true' "$tmp/source-manifest" >/dev/nul
 run_plan "$stage" "$plan"
 expect_plan "$plan" dev-debug dev-selector dev-terminal jsonc-array vendor-manager vendor-monsters
 
+# Enabling both content packs retains their manifests and their required closure.
+write_mod "$stage" '{"magical-glass": true, "undertale_monsters_recreation": true}'
+cp "$stage/mod.json" "$tmp/enabled-manifest"
+LUA_PATH="$root/build-helper/?.lua;;" luajit - "$stage" "$plan" <<'LUA'
+local manifest = require("manifest")
+assert(manifest.normalize_release_libraries(arg[1], arg[2], false))
+local packaged = assert(manifest.read_manifest(arg[1] .. "/mod.json"))
+assert(packaged.optionalLibraries["magical-glass"] == true)
+assert(packaged.optionalLibraries.undertale_monsters_recreation == true)
+LUA
+expect_plan "$plan" dev-debug dev-selector dev-terminal
+cmp "$tmp/enabled-manifest" "$stage/mod.json"
+
 # A disabled submodule may be absent; an enabled one may not.
 write_mod "$stage" '{"uninitialized-library": false}'
 run_plan "$stage" "$plan"
