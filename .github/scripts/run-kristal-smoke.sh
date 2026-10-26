@@ -37,13 +37,12 @@ fi
 
 mkdir -p "$sandbox/home" "$sandbox/data" "$sandbox/config" "$sandbox/cache" "$sandbox/runtime"
 chmod 700 "$sandbox/runtime"
-# xvfb-run is Linux-only; elsewhere love opens a real window (or runs headless
-# in a non-interactive session) and the env-only launch works.
-if command -v xvfb-run >/dev/null 2>&1; then
-    launch='xvfb-run -a env'
-else
-    launch='env'
-fi
+# Linux tests always use a reserved display above :99, with normal X11 locks.
+# The wrapper also verifies desktop socket identities and Xwayland PIDs.
+case "$(uname -s)" in
+    Linux*) set -- python3 "$root/.github/scripts/safe-xvfb.py" -- ;;
+    *) set -- ;;
+esac
 # Prefer the console build where it exists (Windows): lovec writes stdout (the
 # smoke log) directly, where love.exe is a GUI-subsystem binary.
 if command -v lovec >/dev/null 2>&1; then
@@ -52,7 +51,7 @@ else
     love_cmd=love
 fi
 # `timeout --kill-after` is a GNUism; plain timeout is portable.
-timeout 45s $launch \
+timeout 45s "$@" env \
     HOME="$sandbox/home" \
     XDG_DATA_HOME="$sandbox/data" \
     XDG_CONFIG_HOME="$sandbox/config" \

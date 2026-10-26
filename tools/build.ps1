@@ -118,7 +118,7 @@ function Invoke-TMFetchKristalReference {
 }
 
 function Resolve-TMKristal {
-    $pinnedReference = '8e592d84065263138d4e92593f0a4ab780d93822'
+    $pinnedReference = 'eaf9e0ef4472f2a8090a76fc8b6194230c3e30f7'
     $configuredReference = $env:DELTARUNE_DDD_CH1_KRISTAL_REF
     $reference = if ($configuredReference) { $configuredReference } else { $pinnedReference }
     $source = $env:DELTARUNE_DDD_CH1_KRISTAL_SOURCE
