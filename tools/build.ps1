@@ -352,7 +352,7 @@ function Invoke-TMReleaseLibraryPrune {
 
     $plan = [System.IO.Path]::GetTempFileName()
     try {
-        Invoke-TMBuildHelper $Root $LoveExecutable @('plan-release-libraries', $StageMod, $plan)
+        Invoke-TMBuildHelper $Root $LoveExecutable @('normalize-release-libraries', $StageMod, $plan)
         foreach ($entry in [System.IO.File]::ReadAllLines($plan)) {
             if ([string]::IsNullOrWhiteSpace($entry) -or $entry -in @('.', '..') -or
                 $entry -match '[\\/\r\n]') {

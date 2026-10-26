@@ -174,7 +174,7 @@ prune_release_optional_libraries() {
     [ -d "$stage_mod" ] || fail "暂存项目目录不存在: $stage_mod"
     plan_file="$(mktemp)" || fail '无法创建库裁剪计划临时文件（mktemp 失败）'
 
-    if ! run_helper plan-release-libraries "$stage_mod" "$plan_file"; then
+    if ! run_helper normalize-release-libraries "$stage_mod" "$plan_file"; then
         rm -f "$plan_file"
         return 1
     fi

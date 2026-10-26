@@ -5,6 +5,8 @@ KRISTAL ?=
 test: test-static test-debug-tools test-ddd-3d
 
 test-static:
+	python3 tests/android_release.py
+	python3 tests/package_libraries.py
 	sh .github/scripts/static-smoke.sh
 	luajit tests/optional_libraries.lua
 	luajit tests/i18n_item_key_api.lua

@@ -14,6 +14,7 @@
 --   patch-android-loading-touch <source>
 --   set-mod-json-flag <manifest> <key> <true|false>
 --   plan-release-libraries <stage_mod_dir> <plan_file>
+--   normalize-release-libraries <stage_mod_dir> <plan_file>
 --   zip-dir <output> <source> [prefix]
 
 local Manifest = require("manifest")
@@ -513,6 +514,9 @@ local function main()
         patch_android_loading_touch(args)
     elseif command == "set-mod-json-flag" then
         set_mod_json_flag(args)
+    elseif command == "normalize-release-libraries" then
+        local ok, err = Manifest.normalize_release_libraries(args[2], args[3])
+        if not ok then fail(err) end
     elseif command == "plan-release-libraries" then
         plan_release_libraries(args)
     elseif command == "zip-dir" then
