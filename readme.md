@@ -30,6 +30,12 @@
 <br>
 </div>
 
+## Kristal 版本支持
+
+| Kristal                                                                                                                       | deltarune-ddd |
+| ----------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| [v0.11.0-dev](https://github.com/KristalTeam/Kristal/commit/eaf9e0ef4472f2a8090a76fc8b6194230c3e30f7) (`eaf9e0e`, 2026-10-18) |               |
+
 <details>
 <summary>速通废话，实事求是……</summary>
 

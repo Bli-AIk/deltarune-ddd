@@ -1,8 +1,8 @@
 KRISTAL ?=
 
-.PHONY: test test-static test-debug-tools test-ddd-3d test-kristal build build-love build-win build-android build-android-wrap
+.PHONY: test test-static test-debug-tools test-ddd-3d test-ci-sdk test-kristal build build-love build-win build-android build-android-wrap
 
-test: test-static test-debug-tools test-ddd-3d
+test: test-static test-debug-tools test-ddd-3d test-ci-sdk
 
 test-static:
 	python3 tests/android_release.py
@@ -27,6 +27,9 @@ test-debug-tools:
 
 test-ddd-3d:
 	luajit libraries/ddd-3d/tests/material_contract.lua
+
+test-ci-sdk:
+	python3 tests/ci_android_sdk.py
 
 test-kristal:
 	KRISTAL="$${KRISTAL:-$$(sh .github/scripts/find-kristal.sh 2>/dev/null)}" sh .github/scripts/run-kristal-smoke.sh

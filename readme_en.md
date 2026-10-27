@@ -30,6 +30,12 @@ A Reimagining of <a href="https://deltarune.com">deltarune</a>.
 <br>
 </div>
 
+## Kristal version support
+
+| Kristal                                                                                                                       | deltarune-ddd |
+| ----------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| [v0.11.0-dev](https://github.com/KristalTeam/Kristal/commit/eaf9e0ef4472f2a8090a76fc8b6194230c3e30f7) (`eaf9e0e`, 2026-10-18) |               |
+
 <details>
 <summary>Fast version, honestly...</summary>
 

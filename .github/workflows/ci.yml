@@ -25,8 +25,6 @@ jobs:
           test -s libraries/kristal-object-selector-plus/lib.lua
           test -s libraries/terminal-cli/lib.lua
           test -s libraries/kristal-debug-tools/lib.lua
-          test -s libraries/MagicalGlassRedux/lib.lua
-          test -s libraries/UndertaleMonstersRecreation/lib.json
       - name: Install build dependencies
         run: |
           sudo apt-get update
@@ -177,9 +175,7 @@ jobs:
             'libraries/kristal-i18n/lib.lua',
             'libraries/kristal-object-selector-plus/lib.lua',
             'libraries/terminal-cli/lib.lua',
-            'libraries/kristal-debug-tools/lib.lua',
-            'libraries/MagicalGlassRedux/lib.lua',
-            'libraries/UndertaleMonstersRecreation/lib.json'
+            'libraries/kristal-debug-tools/lib.lua'
           )) {
             if (-not (Test-Path -LiteralPath $file) -or (Get-Item -LiteralPath $file).Length -eq 0) {
               throw "Required submodule file is missing or empty: $file"
@@ -191,9 +187,8 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Set up Android SDK for native packages
-        uses: android-actions/setup-android@v3
-        with:
-          packages: platform-tools
+        shell: pwsh
+        run: ./.github/scripts/setup-android-sdk.ps1
       - name: Install and verify Android API 34 and NDK 25.2
         shell: pwsh
         run: |
@@ -514,9 +509,8 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          packages: platform-tools
+        shell: pwsh
+        run: ./.github/scripts/setup-android-sdk.ps1
       - name: Install Android API and NDK
         run: sdkmanager "platforms;android-34" "build-tools;34.0.0" "ndk;25.2.9519653"
       - name: Build compiled Android APK
