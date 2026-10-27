@@ -197,3 +197,22 @@ deltarune 原作，某些程度上是极简主义的。至少我印象里还记�
 但，请您别对我，我也别对您，抱太大期望。
 
 感谢。
+
+### Android 发布签名与升级
+
+正式 tag 的编译版 APK 需要四个仓库 Secrets：
+`ANDROID_SIGNING_KEYSTORE_BASE64`、`ANDROID_SIGNING_STORE_PASSWORD`、
+`ANDROID_SIGNING_KEY_ALIAS`、`ANDROID_SIGNING_KEY_PASSWORD`；公开仓库变量
+`ANDROID_SIGNING_CERT_SHA256` 保存签名证书的 SHA-256 指纹。
+每个项目使用自己的长期 keystore，派生项目不能复用模板的签名密钥。
+配置缺失或证书不匹配时，CI 会阻止 Android 发布。
+
+发布 tag 必须为 `vMAJOR.MINOR.PATCH`，编译版 APK 的版本码为
+`major * 1000000 + minor * 1000 + patch`；minor、patch 均不得超过 999，结果需在
+`1..2100000000` 内。上传前会校验证书、包名、版本码和版本名称。
+PR 构建继续使用调试签名，不读取发布 Secrets。套包 APK 保留官方 LÖVE 壳的包名和版本，
+仅用于本地实验和测试；正式 tag 发布编译版 APK。
+
+旧版 APK 使用过不同的临时签名，Android 无法用新证书直接覆盖安装。
+请先导出存档，再卸载旧版、安装新版并恢复存档。此后使用同一长期密钥签名的编译版可以覆盖升级。
+请离线加密备份 keystore、别名、密码和证书指纹；密钥丢失后将无法更新已安装的应用。

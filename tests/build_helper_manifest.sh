@@ -101,6 +101,41 @@ write_mod "$stage" '{"magical-glass": false, "undertale_monsters_recreation": tr
 run_plan "$stage" "$plan"
 expect_plan "$plan" dev-debug dev-selector dev-terminal jsonc-array vendor-manager vendor-monsters
 
+# Packaged manifests must describe the post-prune library set. Replay the
+# packaged mod's actual startup selection to catch the APK launch regression.
+cp "$stage/mod.json" "$tmp/source-manifest"
+LUA_PATH="$root/build-helper/?.lua;;" luajit - "$stage" "$plan" "$root/mod.lua" <<'LUA'
+local manifest = require("manifest")
+assert(manifest.normalize_release_libraries(arg[1], arg[2], false))
+local packaged = assert(manifest.read_manifest(arg[1] .. "/mod.json"))
+assert(packaged.optionalLibraries.undertale_monsters_recreation == false)
+assert(packaged.optionalLibraries["magical-glass"] == false)
+local file = assert(io.open(arg[3], "rb"))
+local source = file:read("*a"); file:close()
+local prefix = assert(source:match("^(.-)applyOptionalLibrarySelection%(Mod.info%)"))
+Mod = { info = { optionalLibraries = packaged.optionalLibraries, libs = {}, lib_order = {} } }
+assert(loadstring(prefix .. "\napplyOptionalLibrarySelection(Mod.info)"))()
+LUA
+# Comments and unrelated values survive token-level normalization.
+grep -F '// The field may appear anywhere' "$stage/mod.json" >/dev/null
+grep -F 'https://example.invalid//not-a-comment' "$stage/mod.json" >/dev/null
+grep -F '"undertale_monsters_recreation": true' "$tmp/source-manifest" >/dev/null
+run_plan "$stage" "$plan"
+expect_plan "$plan" dev-debug dev-selector dev-terminal jsonc-array vendor-manager vendor-monsters
+
+# Enabling both content packs retains their manifests and their required closure.
+write_mod "$stage" '{"magical-glass": true, "undertale_monsters_recreation": true}'
+cp "$stage/mod.json" "$tmp/enabled-manifest"
+LUA_PATH="$root/build-helper/?.lua;;" luajit - "$stage" "$plan" <<'LUA'
+local manifest = require("manifest")
+assert(manifest.normalize_release_libraries(arg[1], arg[2], false))
+local packaged = assert(manifest.read_manifest(arg[1] .. "/mod.json"))
+assert(packaged.optionalLibraries["magical-glass"] == true)
+assert(packaged.optionalLibraries.undertale_monsters_recreation == true)
+LUA
+expect_plan "$plan" dev-debug dev-selector dev-terminal
+cmp "$tmp/enabled-manifest" "$stage/mod.json"
+
 # A disabled submodule may be absent; an enabled one may not.
 write_mod "$stage" '{"uninitialized-library": false}'
 run_plan "$stage" "$plan"

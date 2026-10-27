@@ -83,6 +83,8 @@ jobs:
             test -s "$file"
             unzip -t "$file" >/dev/null
           done
+          python3 .github/scripts/verify-package-libraries.py dist/deltarune-ddd-ch1-mod.zip --mod-id deltarune-ddd-ch1
+          python3 .github/scripts/verify-package-libraries.py dist/deltarune-ddd-ch1-release.love --mod-id deltarune-ddd-ch1
           test -s dist-win/deltarune-ddd-ch1-release-win64.zip
           test -s dist-win/deltarune-ddd-ch1-debug-win64.zip
           unzip -t dist-win/deltarune-ddd-ch1-release-win64.zip >/dev/null
@@ -475,6 +477,13 @@ jobs:
             Assert-ArchiveOmits $entries 'mods/deltarune-ddd-ch1/gui.cmd'
           }
           Assert-ArchiveOmits $release 'mods/deltarune-ddd-ch1/libraries/kristal-debug-tools/'
+      - name: Verify libraries inside native Android packages
+        shell: pwsh
+        run: |
+          python .github/scripts/verify-package-libraries.py dist-android-win/deltarune-ddd-ch1-android.apk --mod-id deltarune-ddd-ch1
+          if ($LASTEXITCODE -ne 0) { throw 'Compiled APK library verification failed.' }
+          python .github/scripts/verify-package-libraries.py dist-android-win/deltarune-ddd-ch1-android-wrap.apk --mod-id deltarune-ddd-ch1
+          if ($LASTEXITCODE -ne 0) { throw 'Wrapper APK library verification failed.' }
       - name: Smoke test native task dispatcher cleanup
         shell: pwsh
         run: |
@@ -516,9 +525,11 @@ jobs:
           test -s dist-android-compile/deltarune-ddd-ch1-android.apk
           unzip -t dist-android-compile/deltarune-ddd-ch1-android.apk >/dev/null
           unzip -Z1 dist-android-compile/deltarune-ddd-ch1-android.apk | grep -Fx assets/game.love >/dev/null
+          python3 .github/scripts/verify-package-libraries.py dist-android-compile/deltarune-ddd-ch1-android.apk --mod-id deltarune-ddd-ch1
       - name: Build wrapper Android APK
         run: |
           DELTARUNE_DDD_CH1_OUTPUT_DIR=dist-android-wrap ./tools/build_android_wrap.sh
           test -s dist-android-wrap/deltarune-ddd-ch1-android-wrap.apk
           unzip -t dist-android-wrap/deltarune-ddd-ch1-android-wrap.apk >/dev/null
           unzip -Z1 dist-android-wrap/deltarune-ddd-ch1-android-wrap.apk | grep -Fx assets/game.love >/dev/null
+          python3 .github/scripts/verify-package-libraries.py dist-android-wrap/deltarune-ddd-ch1-android-wrap.apk --mod-id deltarune-ddd-ch1

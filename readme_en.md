@@ -15,8 +15,8 @@ A Reimagining of <a href="https://deltarune.com">deltarune</a>.
 
 ---
 
-| English | Simplified Chinese |
-| :---: | :---: |
+| English |        Simplified Chinese         |
+| :-----: | :-------------------------------: |
 | English | [Simplified Chinese](./readme.md) |
 
 <br>
@@ -55,9 +55,9 @@ Simply put: recut, re-storyboard, and re-direct Deltarune. More or less.
 >
 > Outside the classroom, they started doing things--
 >
-> a quiet and mysterious *beginning*, surreal sci-fi *dreams*, a nostalgic and not-too-long *journey*, a cosmic, solemn, magnificent *atmosphere*...
+> a quiet and mysterious _beginning_, surreal sci-fi _dreams_, a nostalgic and not-too-long _journey_, a cosmic, solemn, magnificent _atmosphere_...
 >
-> Together, they crossed the boundary between *dream* and *reality*.
+> Together, they crossed the boundary between _dream_ and _reality_.
 >
 > ...
 >
@@ -68,13 +68,11 @@ Simply put: recut, re-storyboard, and re-direct Deltarune. More or less.
 
 So yeah. That's where this whole reimagining starts.
 
-
 ## What Reimagining Means, And Why
 
-People have all sorts of words for adaptation. Some call it *derivative work*. Some call it a *fan work*. Some hold it up as a *fan game*. Some just say *alternate universe* and call it a day. The angle is different every time.
+People have all sorts of words for adaptation. Some call it _derivative work_. Some call it a _fan work_. Some hold it up as a _fan game_. Some just say _alternate universe_ and call it a day. The angle is different every time.
 
 So I pulled out a word that still feels fairly new to me: **reimagining**.
-
 
 I have a pretty shallow kind of love for the works I love.
 
@@ -84,16 +82,13 @@ I'm not a game theorist. I can't dig through every layer of a work: its history,
 
 So all I have is this shallow love.
 
-
-And on top of that shallow love, I also sort of noticed, casually and probably recklessly, that the *Hifuu Club* and *deltarune* kind of rhyme with each other.
+And on top of that shallow love, I also sort of noticed, casually and probably recklessly, that the _Hifuu Club_ and _deltarune_ kind of rhyme with each other.
 
 One is the album series I've loved most in recent years. The other is a game that, in some way, really did inspire me and hit something in me.
-
 
 It's that kind of resonance. Dangerous, but wonderful.
 
 I want to put them together. Put the space between them together too. Put them together with certain thoughts from [back then](#ddd-is-a-tribute). Put them together with [what comes next](#where-this-project-is-headed).
-
 
 Reimagining: imagining again, rebuilding the idea.
 
@@ -101,15 +96,11 @@ Maybe it's just a kind of fantasy.
 
 A fantasy where everything starts over, in a way that feels more familiar and more unfamiliar at the same time. A new take that might be more interesting. A dream where I can mix in some of the ideas, feelings, or creative impulse I want to put into the work, assuming I still have any of that left.
 
-
 So, in the end, I finally decided to [build it from nothing](#and-the-tech-stack).
-
 
 As for how it will turn out... nobody knows.
 
-
 ###### After all, making things is exhausting and rarely rewarding.
-
 
 ###### But I still have to do it.
 
@@ -117,7 +108,7 @@ As for how it will turn out... nobody knows.
 
 ###### Wow. An incredibly correct, unbelievably obvious thing to say.
 
-All right, for me, yes, this is obvious. But maybe there really are people who don't know: *UNDERTALE*, the "spiritual predecessor" to *deltarune*, once had a fairly well-known adaptation called **[UNDERTALE DDD](https://undertale-au.fandom.com/wiki/Undertale_Distorted,_Distinctive_Destiny)** (*Undertale: Distorted Distinctive Destiny*).
+All right, for me, yes, this is obvious. But maybe there really are people who don't know: _UNDERTALE_, the "spiritual predecessor" to _deltarune_, once had a fairly well-known adaptation called **[UNDERTALE DDD](https://undertale-au.fandom.com/wiki/Undertale_Distorted,_Distinctive_Destiny)** (_Undertale: Distorted Distinctive Destiny_).
 
 It was an animated series made by YouTuber Theking35. Looking at it now, it's a bit rough, and honestly, nothing too wild.
 
@@ -133,7 +124,7 @@ And a tribute to this distant, divergent dream.
 
 ## Where This Project Is Headed
 
-Yes, I know. I've already said things like [*"distinctive"*](https://github.com/Bli-AIk/souprune) way too many times...
+Yes, I know. I've already said things like [_"distinctive"_](https://github.com/Bli-AIk/souprune) way too many times...
 
 But objectively speaking, maybe, the thing I want to make really may not be that traditional.
 
@@ -151,7 +142,7 @@ How it plays out will lean more on impressions than strict continuity, so yeah, 
 
 ### Beyond The Visuals
 
-The original *deltarune* is, to some degree, minimalist. At least I remember something from *UNDERTALE*'s art book about "deliberately creating a rough texture" or something like that. Maybe those weren't the exact words. Maybe I'm remembering it wrong. But, well, why get that fussy about it...
+The original _deltarune_ is, to some degree, minimalist. At least I remember something from _UNDERTALE_'s art book about "deliberately creating a rough texture" or something like that. Maybe those weren't the exact words. Maybe I'm remembering it wrong. But, well, why get that fussy about it...
 
 In short, maybe I can call it a kind of simple-leaning style?
 
@@ -274,3 +265,28 @@ alternate universe
 
 老老实实写800字。你上次写的字数不够。
 ```
+
+### Android release signing and upgrades
+
+Tagged compiled APK releases require four repository secrets:
+`ANDROID_SIGNING_KEYSTORE_BASE64`, `ANDROID_SIGNING_STORE_PASSWORD`,
+`ANDROID_SIGNING_KEY_ALIAS`, and `ANDROID_SIGNING_KEY_PASSWORD`. Set the public
+repository variable `ANDROID_SIGNING_CERT_SHA256` to the signing certificate's
+SHA-256 fingerprint. Each project must use its own persistent keystore; never
+reuse the template's signing key in a derived project. Missing configuration or
+a certificate mismatch stops the Android release before publication.
+
+Release tags must be `vMAJOR.MINOR.PATCH`. The compiled APK uses
+`major * 1000000 + minor * 1000 + patch` as its version code, with minor and patch
+at most 999 and the result within `1..2100000000`. CI checks the APK's certificate,
+package ID, version code, and version name before uploading it. Pull request
+builds retain debug signing and do not access release secrets. Wrapper APKs keep
+the official LÖVE shell's package identity and version, so they are for local
+experiments and tests; tagged releases publish the compiled APK.
+
+Older APK releases used different temporary signing keys. Android cannot install
+a newly signed APK over an installation with another certificate. Export saves
+before uninstalling that old installation, then install the new APK and restore
+them. Future compiled releases signed with the same persistent key can upgrade
+in place. Keep an encrypted offline backup of the keystore, alias, passwords, and
+certificate fingerprint; losing the key prevents updates to existing installs.

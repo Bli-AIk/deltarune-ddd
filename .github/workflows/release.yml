@@ -14,11 +14,6 @@ on:
         required: false
         default: true
         type: boolean
-      build_android_wrap:
-        description: Build the quick wrapper Android APK (official LÖVE shell + game.love)
-        required: false
-        default: false
-        type: boolean
 
 permissions:
   contents: write
@@ -63,7 +58,7 @@ jobs:
           )"
           test "$version" = "$RELEASE_TAG"
       - name: Set up JDK 17
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_android_apk || inputs.build_android_wrap }}
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_android_apk }}
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -79,6 +74,19 @@ jobs:
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_android_apk }}
         run: sdkmanager "platforms;android-34" "build-tools;34.0.0" "ndk;25.2.9519653"
 
+      - name: Prepare stable Android release signing
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_android_apk }}
+        env:
+          ANDROID_SIGNING_KEYSTORE_BASE64: ${{ secrets.ANDROID_SIGNING_KEYSTORE_BASE64 }}
+          ANDROID_SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+          ANDROID_SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+          ANDROID_SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+          ANDROID_SIGNING_CERT_SHA256: ${{ vars.ANDROID_SIGNING_CERT_SHA256 }}
+        run: |
+          python3 .github/scripts/android-release.py prepare \
+            --tag "$RELEASE_TAG" --env-prefix DELTARUNE_DDD_CH1 \
+            --keystore "$RUNNER_TEMP/android-release.jks" --output-env "$GITHUB_ENV"
+
       - name: Build release assets
         run: |
           just build
@@ -88,9 +96,19 @@ jobs:
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_android_apk }}
         run: ./tools/build_android.sh
 
-      - name: Build Android wrapper APK (wrap)
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.build_android_wrap }}
-        run: ./tools/build_android_wrap.sh
+      - name: Verify signed Android release
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_android_apk }}
+        env:
+          ANDROID_SIGNING_CERT_SHA256: ${{ vars.ANDROID_SIGNING_CERT_SHA256 }}
+        run: |
+          python3 .github/scripts/android-release.py verify \
+            --apk dist/deltarune-ddd-ch1-android.apk --tag "$RELEASE_TAG" \
+            --certificate "$ANDROID_SIGNING_CERT_SHA256" \
+            --application-id "${DELTARUNE_DDD_CH1_ANDROID_APPLICATION_ID:-org.deltarunedddch1.template}"
+
+      - name: Remove temporary Android release keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/android-release.jks"
 
       - name: Package full source with submodules
         run: |
@@ -104,6 +122,14 @@ jobs:
           (cd "$PWD" && zip -qr "dist/deltarune-ddd-ch1-$TAG-full-source.zip" . \
             -x '.git*' '.build*' 'dist*' '.tools*' '.worktrees*')
 
+      - name: Verify packaged runtime libraries
+        run: |
+          python3 .github/scripts/verify-package-libraries.py dist/deltarune-ddd-ch1-mod.zip --mod-id deltarune-ddd-ch1
+          python3 .github/scripts/verify-package-libraries.py dist/deltarune-ddd-ch1-release.love --mod-id deltarune-ddd-ch1
+          for apk in dist/*.apk; do
+            [ -f "$apk" ] || continue
+            python3 .github/scripts/verify-package-libraries.py "$apk" --mod-id deltarune-ddd-ch1
+          done
       - name: Generate and verify SHA-256 manifest
         run: |
           .github/scripts/generate_sha256sums.sh dist

@@ -12,6 +12,8 @@ local DEVELOPMENT_LIBRARY_IDS = {
 
 local ARRAY_VALUES = setmetatable({}, { __mode = "k" })
 local JSON_NULL = {}
+-- Token spans let release staging change booleans without rewriting JSONC.
+local VALUE_SPANS = setmetatable({}, { __mode = "k" })
 
 local function line_and_column(text, position)
     local line, last_newline = 1, 0
@@ -181,6 +183,7 @@ local function parse_object(reader)
     reader.position = reader.position + 1
     skip_space_and_comments(reader)
     local object = {}
+    VALUE_SPANS[object] = {}
     if reader.text:sub(reader.position, reader.position) == "}" then
         reader.position = reader.position + 1
         return object
@@ -199,7 +202,10 @@ local function parse_object(reader)
             parse_error(reader, "expected ':' after object key")
         end
         reader.position = reader.position + 1
+        skip_space_and_comments(reader)
+        local start = reader.position
         object[key] = parse_value(reader)
+        VALUE_SPANS[object][key] = { start, reader.position - 1 }
         skip_space_and_comments(reader)
         local delimiter = reader.text:sub(reader.position, reader.position)
         if delimiter == "}" then
@@ -292,14 +298,14 @@ local function read_manifest(path)
         return manifest
     end)
     if not ok then return nil, tostring(manifest_or_err) end
-    return manifest_or_err
+    return manifest_or_err, nil, text
 end
 
 local function optional_library_selection(path)
-    local manifest, err = read_manifest(path)
+    local manifest, err, text = read_manifest(path)
     if not manifest then return nil, err end
     local selection = manifest.optionalLibraries
-    if selection == nil then return {} end
+    if selection == nil then return {}, nil, text end
     if type(selection) ~= "table" or ARRAY_VALUES[selection] then
         return nil, path .. ": optionalLibraries must be an object"
     end
@@ -308,7 +314,7 @@ local function optional_library_selection(path)
             return nil, path .. ": optionalLibraries must map non-empty IDs to booleans"
         end
     end
-    return selection
+    return selection, nil, text
 end
 
 local function library_manifest(path)
@@ -428,7 +434,7 @@ end
 
 -- Write one immediate libraries/ child directory name per line for release
 -- exclusions: dev tools, disabled optional libraries, and required dependents.
-function Manifest.write_release_library_plan(stage_dir, plan_path, windows)
+local function write_release_library_plan(stage_dir, plan_path, windows, normalize)
     if type(stage_dir) ~= "string" or stage_dir == "" then
         return nil, "plan-release-libraries: stage directory is required"
     end
@@ -436,7 +442,8 @@ function Manifest.write_release_library_plan(stage_dir, plan_path, windows)
         return nil, "plan-release-libraries: plan path is required"
     end
 
-    local selection, selection_err = optional_library_selection(join_path(stage_dir, "mod.json"))
+    local manifest_path = join_path(stage_dir, "mod.json")
+    local selection, selection_err, manifest_text = optional_library_selection(manifest_path)
     if not selection then return nil, selection_err end
     local directories, directory_err = library_directories(stage_dir, is_windows(windows))
     if not directories then return nil, directory_err end
@@ -508,11 +515,42 @@ function Manifest.write_release_library_plan(stage_dir, plan_path, windows)
     end
     table.sort(entries)
 
+    if normalize then
+        local edits = {}
+        for id, enabled in pairs(selection) do
+            if enabled and disabled[id] then
+                edits[#edits + 1] = VALUE_SPANS[selection][id]
+            end
+        end
+        table.sort(edits, function(a, b) return a[1] > b[1] end)
+        for _, span in ipairs(edits) do
+            manifest_text = manifest_text:sub(1, span[1] - 1) .. "false" .. manifest_text:sub(span[2] + 1)
+        end
+        if #edits > 0 then
+            local manifest_file, write_err = io.open(manifest_path, "wb")
+            if not manifest_file then return nil, "cannot write " .. manifest_path .. ": " .. tostring(write_err) end
+            manifest_file:write(manifest_text)
+            manifest_file:close()
+        end
+    end
+
     local output, output_err = io.open(plan_path, "wb")
     if not output then return nil, "cannot write " .. plan_path .. ": " .. tostring(output_err) end
     for _, entry in ipairs(entries) do output:write(entry, "\n") end
     output:close()
     return true
 end
+
+-- The planner remains read-only. Packagers use normalization on their private
+-- staging tree before removing the directories in the returned plan.
+function Manifest.write_release_library_plan(stage_dir, plan_path, windows)
+    return write_release_library_plan(stage_dir, plan_path, windows, false)
+end
+
+function Manifest.normalize_release_libraries(stage_dir, plan_path, windows)
+    return write_release_library_plan(stage_dir, plan_path, windows, true)
+end
+
+Manifest.read_manifest = read_manifest
 
 return Manifest

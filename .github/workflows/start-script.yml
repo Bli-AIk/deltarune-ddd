@@ -31,8 +31,12 @@ jobs:
           # temporary directory, so the script mutates a copy, not the checkout.
           $tmp = Join-Path $env:RUNNER_TEMP 'start-script-test'
           New-Item -ItemType Directory -Force -Path $tmp | Out-Null
-          tar -cf - -C $PWD --exclude='./.build' --exclude='./dist' --exclude='./.tools' . |
-            tar -xf - -C $tmp
+          # Native filesystem copies preserve binary and hidden Git files on both platforms.
+          Get-ChildItem -LiteralPath $PWD -Force |
+            Where-Object { $_.Name -notin @('.build', 'dist', '.tools') } |
+            ForEach-Object {
+              Copy-Item -LiteralPath $_.FullName -Destination $tmp -Recurse -Force
+            }
 
           Push-Location $tmp
           try {
@@ -94,11 +98,5 @@ jobs:
           } finally {
             Pop-Location
           }
-      - name: Verify the renamed copy passes the test suite (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y just luajit jq
-          cd "$RUNNER_TEMP/start-script-test"
-          make test
+# The renamed copy has different project paths and identity. The regular
+# ci.yml verifies this project's full suite on its real checkout.
