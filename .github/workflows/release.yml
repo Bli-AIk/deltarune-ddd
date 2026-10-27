@@ -71,9 +71,8 @@ jobs:
 
       - name: Set up Android SDK
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_android_apk }}
-        uses: android-actions/setup-android@v3
-        with:
-          packages: platform-tools
+        shell: pwsh
+        run: ./.github/scripts/setup-android-sdk.ps1
 
       - name: Install Android API and NDK
         if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_android_apk }}
