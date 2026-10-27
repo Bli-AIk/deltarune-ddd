@@ -20,3 +20,6 @@
 [submodule "docs"]
 	path = docs
 	url = https://github.com/Bli-AIk/deltarune-ddd-docs.git
+[submodule "prototypes/timeline-lab"]
+	path = prototypes/timeline-lab
+	url = https://github.com/Bli-AIk/deltarune-ddd-timeline-lab.git
